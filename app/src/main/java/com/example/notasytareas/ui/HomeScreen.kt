@@ -1,5 +1,6 @@
 package com.example.notasytareas.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,32 +15,42 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
-
-// Modelo temporal (simula base de datos)
-data class NoteItem(
-    val id: Int,
-    val title: String,
-    val description: String,
-    val isTask: Boolean,
-    val isDone: Boolean = false
-)
+import com.example.notasytareas.data.models.Nota
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.notasytareas.NotasApplication
+import com.example.notasytareas.ui.viewmodel.HomeViewModel
+import com.example.notasytareas.ui.viewmodel.HomeViewModelFactory
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit) {
+fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
+               onNoteClick: (Nota) -> Unit) {
     var selectedTab by remember { mutableStateOf(0) } // 0 = notas, 1 = tareas
     var showMenu by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
-    // Datos de prueba
+    // << 4. Obtenemos el ViewModel usando la Factory (como vimos antes) >>
+    val application = LocalContext.current.applicationContext as NotasApplication
+    val viewModel: HomeViewModel = viewModel(
+        factory = HomeViewModelFactory(application.repository)
+    )
+
+    // << 5. Observamos la lista de notas REAL de la base de datos >>
+    //    'collectAsState' hace que la UI se redibuje sola cuando la lista cambia.
+    val notas by viewModel.listaNotas.collectAsState()
+
+    // << 6. Eliminamos la lista 'notes' harcodeada >>
+    /*
     val notes = remember {
-        mutableStateListOf(
-            NoteItem(1, "Ideas del proyecto", "Definir estructura y base de datos", false),
-            NoteItem(2, "Comprar componentes", "Cables, resistencias, protoboard", true, false),
-            NoteItem(3, "Revisar app", "Agregar pantalla de tareas", true, true),
-            NoteItem(4, "Reunión semanal", "Hablar sobre nuevas funciones", false),
-        )
+        mutableStateListOf(...)
     }
+    */
 
     Scaffold(
         topBar = {
@@ -62,14 +73,14 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit) {
                         text = { Text("Nueva nota") },
                         onClick = {
                             showMenu = false
-                            onAddClick(false)
+                            onAddClick(false) // false = no es tarea
                         }
                     )
                     DropdownMenuItem(
                         text = { Text("Nueva tarea") },
                         onClick = {
                             showMenu = false
-                            onAddClick(true)
+                            onAddClick(true) // true = es tarea
                         }
                     )
                 }
@@ -100,11 +111,16 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit) {
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Tareas") })
             }
 
-            val filteredList = remember(searchQuery, selectedTab) {
-                notes.filter {
+            // << 7. Filtramos la lista 'notas' del ViewModel >>
+            val filteredList = remember(searchQuery, selectedTab, notas) {
+                // Usamos 'notas' (del ViewModel) en lugar de 'notes' (harcodeada)
+                notas.filter {
                     val matchesQuery =
-                        it.title.contains(searchQuery, ignoreCase = true) ||
-                                it.description.contains(searchQuery, ignoreCase = true)
+                        // << 8. Usamos los nombres de la Entidad: 'titulo' y 'contenido' >>
+                        it.titulo.contains(searchQuery, ignoreCase = true) ||
+                                it.contenido.contains(searchQuery, ignoreCase = true)
+
+                    // 'it.isTask' ahora viene de la base de datos
                     val matchesTab = if (selectedTab == 0) !it.isTask else it.isTask
                     matchesQuery && matchesTab
                 }
@@ -118,16 +134,19 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit) {
                     contentAlignment = Alignment.TopCenter
                 ) {
                     Text(
-                        text = "No se encontraron resultados 😔",
+                        text = "No se encontraron resultados",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.outline
                     )
                 }
             } else {
+                // << 9. Pasamos la 'filteredList' (que ahora es List<Nota>) >>
                 if (selectedTab == 0) {
-                    NoteList(filteredList)
+                    // 2. Pasa el callback a NoteList
+                    NoteList(filteredList, onNoteClick = onNoteClick)
                 } else {
-                    TaskList(filteredList)
+                    // 3. Pasa el callback a TaskList
+                    TaskList(filteredList, onNoteClick = onNoteClick)
                 }
             }
         }
@@ -136,7 +155,7 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit) {
 
 // 🔹 Listado de Notas
 @Composable
-fun NoteList(items: List<NoteItem>) {
+fun NoteList(items: List<Nota>, onNoteClick: (Nota) -> Unit) { // << 10. Actualizamos el tipo de parámetro a List<Nota> >>
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -145,19 +164,22 @@ fun NoteList(items: List<NoteItem>) {
     ) {
         items(items) { note ->
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
+                    .clickable { onNoteClick(note) },
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Column(Modifier.padding(16.dp)) {
                     Text(
-                        text = note.title,
+                        // << 11. Cambiamos 'note.title' a 'note.titulo' >>
+                        text = note.titulo,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = note.description,
+                        // << 12. Cambiamos 'note.description' a 'note.contenido' >>
+                        text = note.contenido,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -168,9 +190,17 @@ fun NoteList(items: List<NoteItem>) {
     }
 }
 
+
 // 🔹 Listado de Tareas
 @Composable
-fun TaskList(items: List<NoteItem>) {
+fun TaskList(items: List<Nota>,onNoteClick: (Nota) -> Unit) {
+
+    // --- 1. Obtenemos el ViewModel (lo necesitamos para el Checkbox) ---
+    val application = LocalContext.current.applicationContext as NotasApplication
+    val viewModel: HomeViewModel = viewModel(
+        factory = HomeViewModelFactory(application.repository)
+    )
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -179,40 +209,74 @@ fun TaskList(items: List<NoteItem>) {
     ) {
         items(items) { task ->
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().clickable { onNoteClick(task) },
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
+                // --- Fila Principal ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(horizontal = 8.dp, vertical = 12.dp), // Padding ajustado
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    var checked by remember { mutableStateOf(task.isDone) }
+
+                    // --- 2. Checkbox (Funcional) ---
                     Checkbox(
-                        checked = checked,
-                        onCheckedChange = { checked = it },
+                        checked = task.isDone, // Lee el estado directo de la BD
+                        onCheckedChange = { nuevoEstado ->
+                            // Llama al ViewModel para guardar el nuevo estado
+                            viewModel.actualizarNota(task.copy(isDone = nuevoEstado))
+                        },
                         colors = CheckboxDefaults.colors(
                             checkedColor = MaterialTheme.colorScheme.primary
                         )
                     )
-                    Column(Modifier.weight(1f)) {
+
+                    // --- 3. Columna de Título y Descripción (Izquierda/Centro) ---
+                    Column(
+                        modifier = Modifier
+                            .weight(1f) // Ocupa el espacio restante
+                            .padding(horizontal = 8.dp)
+                    ) {
                         Text(
-                            text = task.title,
+                            text = task.titulo,
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                        Spacer(Modifier.height(4.dp))
                         Text(
-                            text = task.description,
+                            text = task.contenido,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (checked)
+                            color = if (task.isDone)
                                 MaterialTheme.colorScheme.outline
                             else
                                 MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
+                    }
+
+                    // --- 4. Columna de Fecha (Derecha) ---
+                    if (task.fechaLimite != null) {
+                        Column(
+                            horizontalAlignment = Alignment.End, // Alinea el texto a la derecha
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.DateRange,
+                                contentDescription = "Fecha Límite",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            // Usamos un formato corto (ej: 30 oct)
+                            Text(
+                                text = formatFecha(task.fechaLimite, "dd MMM"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
@@ -227,5 +291,8 @@ fun TaskList(items: List<NoteItem>) {
 )
 @Composable
 fun PreviewHomeScreen() {
-    HomeScreen(onAddClick = {})
+    // El preview seguirá sin funcionar bien porque depende del ViewModel
+    // HomeScreen(onAddClick = {})
+    // Para arreglar el preview, tendrías que pasarle una lista falsa
+    // o crear un ViewModel falso, pero no te preocupes por eso ahora.
 }
