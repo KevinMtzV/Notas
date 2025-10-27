@@ -40,6 +40,7 @@ fun EditNoteScreen(
     // Ahora le pasamos el noteId a la Factory
     val application = LocalContext.current.applicationContext as NotasApplication
     val viewModel: EditNoteViewModel = viewModel(
+        key = "detail_${noteId}",
         factory = EditNoteViewModelFactory(application.repository, noteId) // 👈 noteId añadido
     )
 

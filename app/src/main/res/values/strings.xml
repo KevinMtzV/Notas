@@ -1,3 +1,33 @@
 <resources>
     <string name="app_name">Notas y Tareas</string>
+    <string name="save">Guardar</string>
+    <string name="edit">Editar</string>
+    <string name="back">Volver</string>
+    <string name="title">Título</string>
+    <string name="description">Descripción</string>
+    <string name="notes">Notas</string>
+    <string name="tasks">Tareas</string>
+
+    <string name="search_placeholder">Buscar por título o descripción...</string>
+    <string name="add_note">Nueva nota</string>
+    <string name="add_task">Nueva tarea</string>
+    <string name="no_results">No se encontraron resultados 😔</string>
+    <string name="select_or_create_note">Selecciona una nota para verla o crea una nueva.</string>
+
+    <string name="new_note_title">Nueva nota</string>
+    <string name="new_task_title">Nueva tarea</string>
+    <string name="edit_note_title">Editar nota</string>
+    <string name="edit_task_title">Editar tarea</string>
+    <string name="task_completed">Tarea completada</string>
+    <string name="task_pending">Marcar como completada</string>
+    <string name="due_date_optional">Fecha Límite (opcional)</string>
+    <string name="add_date">Agregar fecha</string>
+    <string name="change_date">Cambiar fecha</string>
+    <string name="no_date_assigned">Aún no has asignado una fecha.</string>
+
+    <string name="detail_note_title">Detalle Nota</string>
+    <string name="detail_task_title">Detalle Tarea</string>
+    <string name="status">Estado</string>
+    <string name="status_pending">Pendiente</string>
+    <string name="status_completed">Completada</string>
 </resources>
