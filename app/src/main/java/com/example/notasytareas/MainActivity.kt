@@ -13,19 +13,19 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 
 class MainActivity : ComponentActivity() {
 
-    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class) // 👈 3. Añade el OptIn
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge() // 👈 4. Añade esto (para UI de borde a borde)
+        enableEdgeToEdge()
 
         setContent {
             AppTheme {
 
-                // --- 5. Calcula el tamaño de la pantalla ---
+                // Calcula el tamaño de la pantalla
                 val windowSizeClass = calculateWindowSizeClass(this)
                 val widthSizeClass = windowSizeClass.widthSizeClass
 
-                // --- 6. Pasa el tamaño a tu AppNav ---
+                // Pasa el tamaño al AppNav
                 AppNav(widthSizeClass = widthSizeClass)
             }
         }

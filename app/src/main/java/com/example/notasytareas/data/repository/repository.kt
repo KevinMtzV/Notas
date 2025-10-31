@@ -10,12 +10,12 @@ import kotlinx.coroutines.flow.Flow
  */
 class NotasRepository(private val notasDao: NotasDao) {
 
-    // Simplemente exponemos las funciones del DAO.
+    // exponemos las funciones del DAO.
     // El Flow notificará al ViewModel de cualquier cambio.
     val todasLasNotas: Flow<List<Nota>> = notasDao.obtenerTodasLasNotas()
 
     // Usamos 'suspend' para que el ViewModel tenga que llamarlo
-    // desde una corrutina (ej. viewModelScope.launch).
+    // desde una corrutina
     suspend fun insertarNota(nota: Nota) {
         notasDao.insertarNota(nota)
     }

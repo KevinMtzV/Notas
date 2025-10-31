@@ -11,5 +11,5 @@ data class Nota(
     val contenido: String,
     val isTask: Boolean = false,
     val isDone: Boolean = false,
-    val fechaLimite: Long? = null // Almacenará el timestamp (milisegundos)
+    val fechaLimite: Long? = null // Almacenará el timestamp
 )

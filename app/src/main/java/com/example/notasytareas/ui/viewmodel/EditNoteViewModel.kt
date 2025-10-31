@@ -75,7 +75,7 @@ class EditNoteViewModel(
     }
 }
 
-// --- Factory (MODIFICADA) ---
+
 // 5. La Factory ahora también necesita el noteId
 class EditNoteViewModelFactory(
     private val repository: NotasRepository,

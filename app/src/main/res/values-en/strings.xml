@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Notes and Tasks</string>
+    <string name="save">Save</string>
+    <string name="edit">Edit</string>
+    <string name="back">Back</string>
+    <string name="title">Title</string>
+    <string name="description">Description</string>
+    <string name="notes">Notes</string>
+    <string name="tasks">Tasks</string>
+
+    <string name="search_placeholder">Search by title or description...</string>
+    <string name="add_note">New note</string>
+    <string name="add_task">New task</string>
+    <string name="no_results">No results found</string>
+    <string name="select_or_create_note">Select a note to view it or create a new one.</string>
+
+    <string name="new_note_title">New Note</string>
+    <string name="new_task_title">New Task</string>
+    <string name="edit_note_title">Edit Note</string>
+    <string name="edit_task_title">Edit Task</string>
+    <string name="task_completed">Task completed</string>
+    <string name="task_pending">Mark as completed</string>
+    <string name="due_date_optional">Due Date (optional)</string>
+    <string name="add_date">Add date</string>
+    <string name="change_date">Change date</string>
+    <string name="no_date_assigned">You haven’t assigned a date yet.</string>
+
+    <string name="detail_note_title">Note Details</string>
+    <string name="detail_task_title">Task Details</string>
+    <string name="status">Status</string>
+    <string name="status_pending">Pending</string>
+    <string name="status_completed">Completed</string>
+</resources>

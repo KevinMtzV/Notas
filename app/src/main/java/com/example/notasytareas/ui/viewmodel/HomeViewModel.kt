@@ -43,14 +43,7 @@ class HomeViewModel(private val repository: NotasRepository) : ViewModel() {
     }
 }
 
-/**
- * ¡MUY IMPORTANTE!
- * Como nuestro HomeViewModel necesita un 'NotasRepository' en su constructor,
- * no podemos dejar que Android lo cree por defecto.
- *
- * Debemos crear una "Fábrica" (Factory) que le diga a Android
- * cómo construir nuestro HomeViewModel.
- */
+
 class HomeViewModelFactory(private val repository: NotasRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {

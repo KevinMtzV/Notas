@@ -35,22 +35,17 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
     var showMenu by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
-    // << 4. Obtenemos el ViewModel usando la Factory (como vimos antes) >>
+    // Obtenemos el ViewModel usando la Factory
     val application = LocalContext.current.applicationContext as NotasApplication
     val viewModel: HomeViewModel = viewModel(
         factory = HomeViewModelFactory(application.repository)
     )
 
-    // << 5. Observamos la lista de notas REAL de la base de datos >>
+
     //    'collectAsState' hace que la UI se redibuje sola cuando la lista cambia.
     val notas by viewModel.listaNotas.collectAsState()
 
-    // << 6. Eliminamos la lista 'notes' harcodeada >>
-    /*
-    val notes = remember {
-        mutableStateListOf(...)
-    }
-    */
+
 
     Scaffold(
         topBar = {
@@ -93,7 +88,7 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            // 🔹 Campo de búsqueda
+            //Campo de búsqueda
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -105,7 +100,7 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
-            // 🔹 Pestañas (Notas / Tareas)
+            // Pestañas (Notas / Tareas)
             TabRow(selectedTabIndex = selectedTab) {
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Notas") })
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Tareas") })
@@ -113,10 +108,10 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
 
             // << 7. Filtramos la lista 'notas' del ViewModel >>
             val filteredList = remember(searchQuery, selectedTab, notas) {
-                // Usamos 'notas' (del ViewModel) en lugar de 'notes' (harcodeada)
+                // Usamos 'notas' (del ViewModel) en lugar de 'notes'
                 notas.filter {
                     val matchesQuery =
-                        // << 8. Usamos los nombres de la Entidad: 'titulo' y 'contenido' >>
+                        // << 8. Usamos los nombres de la Entidad titulo y contenido >>
                         it.titulo.contains(searchQuery, ignoreCase = true) ||
                                 it.contenido.contains(searchQuery, ignoreCase = true)
 
@@ -140,7 +135,7 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
                     )
                 }
             } else {
-                // << 9. Pasamos la 'filteredList' (que ahora es List<Nota>) >>
+                // << 9. Pasamos la List<Nota> >>
                 if (selectedTab == 0) {
                     // 2. Pasa el callback a NoteList
                     NoteList(filteredList, onNoteClick = onNoteClick)
@@ -153,9 +148,9 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
     }
 }
 
-// 🔹 Listado de Notas
+// Listado de Notas
 @Composable
-fun NoteList(items: List<Nota>, onNoteClick: (Nota) -> Unit) { // << 10. Actualizamos el tipo de parámetro a List<Nota> >>
+fun NoteList(items: List<Nota>, onNoteClick: (Nota) -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -170,7 +165,7 @@ fun NoteList(items: List<Nota>, onNoteClick: (Nota) -> Unit) { // << 10. Actuali
             ) {
                 Column(Modifier.padding(16.dp)) {
                     Text(
-                        // << 11. Cambiamos 'note.title' a 'note.titulo' >>
+                        // << Cambiamos 'note.title' a 'note.titulo' >>
                         text = note.titulo,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         maxLines = 1,
@@ -191,11 +186,11 @@ fun NoteList(items: List<Nota>, onNoteClick: (Nota) -> Unit) { // << 10. Actuali
 }
 
 
-// 🔹 Listado de Tareas
+// Listado de Tareas
 @Composable
 fun TaskList(items: List<Nota>,onNoteClick: (Nota) -> Unit) {
 
-    // --- 1. Obtenemos el ViewModel (lo necesitamos para el Checkbox) ---
+    // --- 1. Obtenemos el ViewModel  ---
     val application = LocalContext.current.applicationContext as NotasApplication
     val viewModel: HomeViewModel = viewModel(
         factory = HomeViewModelFactory(application.repository)
@@ -220,7 +215,7 @@ fun TaskList(items: List<Nota>,onNoteClick: (Nota) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
 
-                    // --- 2. Checkbox (Funcional) ---
+                    // --- 2. Checkbox ---
                     Checkbox(
                         checked = task.isDone, // Lee el estado directo de la BD
                         onCheckedChange = { nuevoEstado ->
@@ -269,7 +264,7 @@ fun TaskList(items: List<Nota>,onNoteClick: (Nota) -> Unit) {
                                 modifier = Modifier.size(18.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
-                            // Usamos un formato corto (ej: 30 oct)
+                            // Usamos un formato corto
                             Text(
                                 text = formatFecha(task.fechaLimite, "dd MMM"),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -291,8 +286,5 @@ fun TaskList(items: List<Nota>,onNoteClick: (Nota) -> Unit) {
 )
 @Composable
 fun PreviewHomeScreen() {
-    // El preview seguirá sin funcionar bien porque depende del ViewModel
-    // HomeScreen(onAddClick = {})
-    // Para arreglar el preview, tendrías que pasarle una lista falsa
-    // o crear un ViewModel falso, pero no te preocupes por eso ahora.
+
 }

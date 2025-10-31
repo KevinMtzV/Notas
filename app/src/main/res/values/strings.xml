@@ -11,7 +11,7 @@
     <string name="search_placeholder">Buscar por título o descripción...</string>
     <string name="add_note">Nueva nota</string>
     <string name="add_task">Nueva tarea</string>
-    <string name="no_results">No se encontraron resultados 😔</string>
+    <string name="no_results">No se encontraron resultados</string>
     <string name="select_or_create_note">Selecciona una nota para verla o crea una nueva.</string>
 
     <string name="new_note_title">Nueva nota</string>

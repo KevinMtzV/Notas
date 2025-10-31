@@ -33,11 +33,9 @@ fun AppNav(widthSizeClass: WindowWidthSizeClass) {
     val isCompact = widthSizeClass == WindowWidthSizeClass.Compact
 
     if (isCompact) {
-        // --- PANTALLA COMPACTA (Teléfono) ---
-        PhoneNavigation() // 👈 Llama a la navegación de teléfono
+        PhoneNavigation() //Llama a la navegación de teléfono
     } else {
-        // --- PANTALLA EXPANDIDA (Tablet) ---
-        TabletNavigation() // 👈 Llama a la navegación de tablet
+        TabletNavigation() //Llama a la navegación de tablet
     }
 }
 
@@ -63,13 +61,13 @@ private fun PhoneNavigation() {
                     navController.navigate("edit/$type?noteId=-1")
                 },
                 onNoteClick = { nota ->
-                    // 👈 2. CAMBIO: Al hacer clic, vamos a "detail"
+                    // CAMBIO: Al hacer clic, vamos a "detail"
                     navController.navigate("detail/${nota.id}")
                 }
             )
         }
 
-        // --- 3. NUEVA RUTA: "detail" (Vista Previa) ---
+
         composable(
             route = "detail/{noteId}",
             arguments = listOf(navArgument("noteId") { type = NavType.IntType })
@@ -89,7 +87,7 @@ private fun PhoneNavigation() {
         }
 
         // --- Ruta EditNoteScreen (Teléfono) ---
-        // (Esta se queda igual)
+
         composable(
             route = "edit/{type}?noteId={noteId}",
             arguments = listOf(
@@ -129,7 +127,7 @@ private fun TabletNavigation() {
     // --- 1. Estado para saber qué nota está seleccionada ---
     var selectedNoteId by rememberSaveable { mutableStateOf<Int?>(null) }
     var noteType by rememberSaveable { mutableStateOf("note") } // "note" o "task"
-    // 👈 4. NUEVO ESTADO: ¿Estamos editando o solo viendo?
+    // NUEVO ESTADO: ¿Estamos editando o solo viendo?
     var isEditing by rememberSaveable { mutableStateOf(false) }
 
     Row(Modifier.fillMaxSize()) {
@@ -140,12 +138,12 @@ private fun TabletNavigation() {
                 onAddClick = { isTask ->
                     noteType = if (isTask) "task" else "note"
                     selectedNoteId = -1
-                    isEditing = true // 👈 Al añadir, vamos directo a editar
+                    isEditing = true //Al añadir, vamos directo a editar
                 },
                 onNoteClick = { nota ->
                     noteType = if (nota.isTask) "task" else "note"
                     selectedNoteId = nota.id
-                    isEditing = false // 👈 Al hacer clic, vamos a vista previa
+                    isEditing = false // Al hacer clic, vamos a vista previa
                 }
             )
         }
@@ -154,7 +152,7 @@ private fun TabletNavigation() {
         Box(modifier = Modifier.weight(0.6f)) {
             if (selectedNoteId != null) {
 
-                // 👈 5. LÓGICA MODIFICADA
+                // LÓGICA MODIFICADA
                 if (isEditing) {
                     // Si estamos editando, muestra EditNoteScreen
                     EditNoteScreen(

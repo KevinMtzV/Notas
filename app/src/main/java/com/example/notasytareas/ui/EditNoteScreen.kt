@@ -33,19 +33,19 @@ import androidx.compose.runtime.collectAsState
 @Composable
 fun EditNoteScreen(
     onBack: () -> Unit,
-    type: String,     // 👈 Recibido desde AppNav.kt ("note" o "task")
-    noteId: Int      // 👈 Recibido desde AppNav.kt
+    type: String,     //  Recibido desde AppNav.kt ("note" o "task")
+    noteId: Int      // Recibido desde AppNav.kt
 ) {
-    // --- 1. Obtenemos el ViewModel (MODIFICADO) ---
+    // --- 1. Obtenemos el ViewModel ---
     // Ahora le pasamos el noteId a la Factory
     val application = LocalContext.current.applicationContext as NotasApplication
     val viewModel: EditNoteViewModel = viewModel(
         key = "detail_${noteId}",
-        factory = EditNoteViewModelFactory(application.repository, noteId) // 👈 noteId añadido
+        factory = EditNoteViewModelFactory(application.repository, noteId) //  noteId añadido
     )
 
     // --- 2. Observamos la nota que se carga desde el ViewModel ---
-    val notaCargada by viewModel.notaCargada.collectAsState() // 👈 NUEVO
+    val notaCargada by viewModel.notaCargada.collectAsState() //  NUEVO
 
     // ---------- ESTADO ----------
     var title by remember { mutableStateOf("") }
@@ -55,10 +55,10 @@ fun EditNoteScreen(
     var showDatePicker by remember { mutableStateOf(false) }
 
     // --- 3. Estado para evitar recargar datos si la UI se recompone ---
-    var datosCargados by remember { mutableStateOf(false) } // 👈 NUEVO
+    var datosCargados by remember { mutableStateOf(false) } //  NUEVO
 
     // --- 4. LAUNCHED EFFECT: Rellena los campos cuando la nota se carga ---
-    LaunchedEffect(key1 = notaCargada) { // 👈 NUEVO
+    LaunchedEffect(key1 = notaCargada) { //  NUEVO
         // Si hay una nota cargada Y aún no hemos rellenado los campos...
         if (notaCargada != null && !datosCargados) {
             title = notaCargada!!.titulo
@@ -72,7 +72,7 @@ fun EditNoteScreen(
     val isTask = type == "task"
     // --- 5. Título dinámico (MODIFICADO) ---
     // Ahora comprueba si es una nota nueva o una existente
-    val screenTitle = if (viewModel.isNuevaNota) { // 👈 MODIFICADO
+    val screenTitle = if (viewModel.isNuevaNota) { //  MODIFICADO
         if (isTask) "Nueva tarea" else "Nueva nota"
     } else {
         if (isTask) "Editar tarea" else "Editar nota"
@@ -121,7 +121,7 @@ fun EditNoteScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(screenTitle) }, // 👈 Usa el título dinámico
+                title = { Text(screenTitle) }, //  Usa el título dinámico
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
@@ -161,7 +161,7 @@ fun EditNoteScreen(
 
             // ---------- ENCABEZADO ----------
             Text(
-                text = screenTitle, // 👈 Usa el título dinámico
+                text = screenTitle, //  Usa el título dinámico
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
@@ -204,7 +204,7 @@ fun EditNoteScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Checkbox(
-                        checked = isDone, // 👈 Se rellena solo
+                        checked = isDone, //  Se rellena solo
                         onCheckedChange = { isDone = it },
                         colors = CheckboxDefaults.colors(
                             checkedColor = MaterialTheme.colorScheme.primary
@@ -289,7 +289,7 @@ fun PreviewEditNoteScreenNote() {
     EditNoteScreen(
         onBack = {},
         type = "note",
-        noteId = -1 // 👈 NUEVO
+        noteId = -1 //  NUEVO
     )
 }
 
@@ -303,6 +303,6 @@ fun PreviewEditNoteScreenTask() {
     EditNoteScreen(
         onBack = {},
         type = "task",
-        noteId = -1 // 👈 NUEVO
+        noteId = -1 //  NUEVO
     )
 }
