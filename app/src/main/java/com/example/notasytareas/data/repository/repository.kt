@@ -8,24 +8,20 @@ import kotlinx.coroutines.flow.Flow
  * El repositorio solo necesita el DAO como dependencia.
  * El ViewModel le pasará el DAO.
  */
-class NotasRepository(private val notasDao: NotasDao) {
+class NotasRepository(private val notasDao: NotasDao) : Notas_repository {
 
     // exponemos las funciones del DAO.
     // El Flow notificará al ViewModel de cualquier cambio.
-    val todasLasNotas: Flow<List<Nota>> = notasDao.obtenerTodasLasNotas()
+    override val todasLasNotas: Flow<List<Nota>> = notasDao.obtenerTodasLasNotas()
 
     // Usamos 'suspend' para que el ViewModel tenga que llamarlo
     // desde una corrutina
-    suspend fun insertarNota(nota: Nota) {
-        notasDao.insertarNota(nota)
-    }
+    override suspend fun insertarNota(nota: Nota) = notasDao.insertarNota(nota)
 
-    suspend fun actualizarNota(nota: Nota) {
-        notasDao.actualizarNota(nota)
-    }
 
-    fun obtenerNotaPorId(id: Int): Flow<Nota?> {
-        return notasDao.obtenerNotaPorId(id)
-    }
+    override suspend fun actualizarNota(nota: Nota) = notasDao.actualizarNota(nota)
+
+
+    override fun obtenerNotaPorId(id: Int): Flow<Nota?> = notasDao.obtenerNotaPorId(id)
+
 }
-

@@ -22,7 +22,9 @@ import com.example.notasytareas.NotasApplication
 import com.example.notasytareas.ui.viewmodel.HomeViewModel
 import com.example.notasytareas.ui.viewmodel.HomeViewModelFactory
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
+import com.example.notasytareas.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,13 +52,13 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Notas y Tareas", fontWeight = FontWeight.SemiBold) }
+                title = { Text(stringResource(R.string.home_screen_title), fontWeight = FontWeight.SemiBold) }
             )
         },
         floatingActionButton = {
             Box {
                 FloatingActionButton(onClick = { showMenu = !showMenu }) {
-                    Icon(Icons.Default.Add, contentDescription = "Agregar")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_fab_content_description))
                 }
 
                 DropdownMenu(
@@ -65,14 +67,14 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
                     modifier = Modifier.width(180.dp)
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Nueva nota") },
+                        text = { Text(stringResource(R.string.add_note)) },
                         onClick = {
                             showMenu = false
                             onAddClick(false) // false = no es tarea
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Nueva tarea") },
+                        text = { Text(stringResource(R.string.add_task)) },
                         onClick = {
                             showMenu = false
                             onAddClick(true) // true = es tarea
@@ -92,8 +94,8 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Buscar por título o descripción...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
+                placeholder = { Text(stringResource(R.string.search_placeholder)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search_content_description)) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -102,8 +104,8 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
 
             // Pestañas (Notas / Tareas)
             TabRow(selectedTabIndex = selectedTab) {
-                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Notas") })
-                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Tareas") })
+                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text(stringResource(R.string.notes)) })
+                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text(stringResource(R.string.tasks)) })
             }
 
             // << 7. Filtramos la lista 'notas' del ViewModel >>
@@ -129,7 +131,7 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
                     contentAlignment = Alignment.TopCenter
                 ) {
                     Text(
-                        text = "No se encontraron resultados",
+                        text = stringResource(R.string.no_results),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -260,7 +262,7 @@ fun TaskList(items: List<Nota>,onNoteClick: (Nota) -> Unit) {
                         ) {
                             Icon(
                                 Icons.Default.DateRange,
-                                contentDescription = "Fecha Límite",
+                                contentDescription = stringResource(R.string.due_date_content_description),
                                 modifier = Modifier.size(18.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )

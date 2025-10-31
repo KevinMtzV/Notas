@@ -15,7 +15,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material.icons.filled.DateRange
-// Imports para el ViewModel
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.notasytareas.NotasApplication
@@ -27,7 +26,8 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-
+import androidx.compose.ui.res.stringResource
+import com.example.notasytareas.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,49 +36,39 @@ fun EditNoteScreen(
     type: String,     //  Recibido desde AppNav.kt ("note" o "task")
     noteId: Int      // Recibido desde AppNav.kt
 ) {
-    // --- 1. Obtenemos el ViewModel ---
-    // Ahora le pasamos el noteId a la Factory
     val application = LocalContext.current.applicationContext as NotasApplication
     val viewModel: EditNoteViewModel = viewModel(
         key = "detail_${noteId}",
-        factory = EditNoteViewModelFactory(application.repository, noteId) //  noteId añadido
+        factory = EditNoteViewModelFactory(application.repository, noteId)
     )
 
-    // --- 2. Observamos la nota que se carga desde el ViewModel ---
-    val notaCargada by viewModel.notaCargada.collectAsState() //  NUEVO
+    val notaCargada by viewModel.notaCargada.collectAsState()
 
-    // ---------- ESTADO ----------
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var isDone by remember { mutableStateOf(false) }
     var fechaLimite by remember { mutableStateOf<Long?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    // --- 3. Estado para evitar recargar datos si la UI se recompone ---
-    var datosCargados by remember { mutableStateOf(false) } //  NUEVO
+    var datosCargados by remember { mutableStateOf(false) }
 
-    // --- 4. LAUNCHED EFFECT: Rellena los campos cuando la nota se carga ---
-    LaunchedEffect(key1 = notaCargada) { //  NUEVO
-        // Si hay una nota cargada Y aún no hemos rellenado los campos...
+    LaunchedEffect(key1 = notaCargada) { 
         if (notaCargada != null && !datosCargados) {
             title = notaCargada!!.titulo
             description = notaCargada!!.contenido
             isDone = notaCargada!!.isDone
             fechaLimite = notaCargada!!.fechaLimite
-            datosCargados = true // Marcamos como cargados
+            datosCargados = true
         }
     }
 
     val isTask = type == "task"
-    // --- 5. Título dinámico (MODIFICADO) ---
-    // Ahora comprueba si es una nota nueva o una existente
-    val screenTitle = if (viewModel.isNuevaNota) { //  MODIFICADO
-        if (isTask) "Nueva tarea" else "Nueva nota"
+    val screenTitle = if (viewModel.isNuevaNota) { 
+        if (isTask) stringResource(R.string.new_task_title) else stringResource(R.string.new_note_title)
     } else {
-        if (isTask) "Editar tarea" else "Editar nota"
+        if (isTask) stringResource(R.string.edit_task_title) else stringResource(R.string.edit_note_title)
     }
 
-    // --- 6. Función de guardado (se queda igual, pero ahora usa la lógica actualizada del ViewModel) ---
     val onSaveClick = {
         viewModel.guardarNota(
             titulo = title,
@@ -87,10 +77,9 @@ fun EditNoteScreen(
             isDone = isDone,
             fechaLimite = fechaLimite
         )
-        onBack() // Navegamos hacia atrás
+        onBack()
     }
 
-    // --- (El diálogo del DatePicker se queda igual) ---
     if (showDatePicker) {
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = fechaLimite ?: System.currentTimeMillis()
@@ -104,12 +93,12 @@ fun EditNoteScreen(
                     showDatePicker = false
                     fechaLimite = datePickerState.selectedDateMillis
                 }) {
-                    Text("Aceptar")
+                    Text(stringResource(R.string.accept))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancelar")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         ) {
@@ -117,19 +106,18 @@ fun EditNoteScreen(
         }
     }
 
-    // ---------- INTERFAZ ----------
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(screenTitle) }, //  Usa el título dinámico
+                title = { Text(screenTitle) }, 
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onSaveClick) {
-                        Icon(Icons.Default.Save, contentDescription = "Guardar")
+                        Icon(Icons.Default.Save, contentDescription = stringResource(R.string.save))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -144,7 +132,7 @@ fun EditNoteScreen(
             ExtendedFloatingActionButton(
                 onClick = onSaveClick,
                 icon = { Icon(Icons.Default.Save, null) },
-                text = { Text("Guardar ${if (isTask) "tarea" else "nota"}") }
+                text = { Text(if (isTask) stringResource(R.string.save_task) else stringResource(R.string.save_note)) }
             )
         }
     ) { innerPadding ->
@@ -159,59 +147,53 @@ fun EditNoteScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // ---------- ENCABEZADO ----------
             Text(
-                text = screenTitle, //  Usa el título dinámico
+                text = screenTitle, 
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
 
-            // ---------- TITULO ----------
-            // (Se rellena solo gracias al LaunchedEffect)
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Título") },
+                label = { Text(stringResource(R.string.title)) },
                 placeholder = {
                     Text(
                         if (isTask)
-                            "Ej. Preparar entrega del proyecto"
+                            stringResource(R.string.task_title_placeholder)
                         else
-                            "Ej. Ideas para nuevo diseño"
+                            stringResource(R.string.note_title_placeholder)
                     )
                 },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // ---------- DESCRIPCIÓN ----------
-            // (Se rellena sola gracias al LaunchedEffect)
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Descripción") },
-                placeholder = { Text("Agrega los detalles aquí...") },
+                label = { Text(stringResource(R.string.description)) },
+                placeholder = { Text(stringResource(R.string.description_placeholder)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 120.dp),
                 textStyle = LocalTextStyle.current.copy(fontSize = 16.sp)
             )
 
-            // ---------- CHECKBOX SOLO PARA TAREAS ----------
             if (isTask) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Checkbox(
-                        checked = isDone, //  Se rellena solo
+                        checked = isDone, 
                         onCheckedChange = { isDone = it },
                         colors = CheckboxDefaults.colors(
                             checkedColor = MaterialTheme.colorScheme.primary
                         )
                     )
                     Text(
-                        text = if (isDone) "Tarea completada" else "Marcar como completada",
+                        text = if (isDone) stringResource(R.string.task_completed) else stringResource(R.string.task_pending),
                         style = MaterialTheme.typography.bodyLarge,
                         color = if (isDone)
                             MaterialTheme.colorScheme.primary
@@ -220,8 +202,6 @@ fun EditNoteScreen(
                     )
                 }
 
-                // ---------- SECCIÓN DE RECORDATORIO ----------
-                // (Se rellena sola gracias al LaunchedEffect)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -232,7 +212,7 @@ fun EditNoteScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            "Fecha Límite (opcional)",
+                            stringResource(R.string.due_date_optional),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -241,7 +221,7 @@ fun EditNoteScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Default.DateRange,
-                                    null,
+                                    contentDescription = stringResource(R.string.due_date_content_description),
                                     modifier = Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -255,14 +235,14 @@ fun EditNoteScreen(
                             }
                         } else {
                             Text(
-                                "Aún no has asignado una fecha.",
+                                stringResource(R.string.no_date_assigned),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
                         OutlinedButton(onClick = { showDatePicker = true }) {
-                            Text(if (fechaLimite == null) "Agregar fecha" else "Cambiar fecha")
+                            Text(if (fechaLimite == null) stringResource(R.string.add_date) else stringResource(R.string.change_date))
                         }
                     }
                 }
@@ -275,10 +255,6 @@ fun EditNoteScreen(
     }
 }
 
-
-// --- 7. Arreglamos los Previews (MODIFICADO) ---
-// Ahora deben pasar un noteId por defecto (ej: -1 para "nota nueva")
-
 @Preview(
     showBackground = true,
     showSystemUi = true,
@@ -289,7 +265,7 @@ fun PreviewEditNoteScreenNote() {
     EditNoteScreen(
         onBack = {},
         type = "note",
-        noteId = -1 //  NUEVO
+        noteId = -1 
     )
 }
 
@@ -303,6 +279,6 @@ fun PreviewEditNoteScreenTask() {
     EditNoteScreen(
         onBack = {},
         type = "task",
-        noteId = -1 //  NUEVO
+        noteId = -1
     )
 }

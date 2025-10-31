@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">Notes and Tasks</string>
+    <string name="home_screen_title">Notes and Tasks</string>
+    <string name="add_fab_content_description">Add</string>
+    <string name="search_content_description">Search</string>
+    <string name="due_date_content_description">Due Date</string>
     <string name="save">Save</string>
     <string name="edit">Edit</string>
     <string name="back">Back</string>
@@ -7,6 +11,13 @@
     <string name="description">Description</string>
     <string name="notes">Notes</string>
     <string name="tasks">Tasks</string>
+    <string name="accept">Accept</string>
+    <string name="cancel">Cancel</string>
+    <string name="save_task">Save task</string>
+    <string name="save_note">Save note</string>
+    <string name="task_title_placeholder">e.g. Prepare project delivery</string>
+    <string name="note_title_placeholder">e.g. Ideas for new design</string>
+    <string name="description_placeholder">Add the details here...</string>
 
     <string name="search_placeholder">Search by title or description...</string>
     <string name="add_note">New note</string>

@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">Notas y Tareas</string>
+    <string name="home_screen_title">Notas y Tareas</string>
+    <string name="add_fab_content_description">Agregar</string>
+    <string name="search_content_description">Buscar</string>
+    <string name="due_date_content_description">Fecha Límite</string>
     <string name="save">Guardar</string>
     <string name="edit">Editar</string>
     <string name="back">Volver</string>
@@ -7,6 +11,13 @@
     <string name="description">Descripción</string>
     <string name="notes">Notas</string>
     <string name="tasks">Tareas</string>
+    <string name="accept">Aceptar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="save_task">Guardar tarea</string>
+    <string name="save_note">Guardar nota</string>
+    <string name="task_title_placeholder">Ej. Preparar entrega del proyecto</string>
+    <string name="note_title_placeholder">Ej. Ideas para nuevo diseño</string>
+    <string name="description_placeholder">Agrega los detalles aquí...</string>
 
     <string name="search_placeholder">Buscar por título o descripción...</string>
     <string name="add_note">Nueva nota</string>
