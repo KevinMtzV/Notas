@@ -3,7 +3,7 @@ package com.example.notasytareas.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.notasytareas.data.repository.NotasRepository
+import com.example.notasytareas.data.repository.Notas_repository
 import com.example.notasytareas.data.models.Nota
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 // 1. El ViewModel ahora toma el noteId
 class EditNoteViewModel(
-    private val repository: NotasRepository,
+    private val repository: Notas_repository,
     private val noteId: Int
 ) : ViewModel() {
 
@@ -78,7 +78,7 @@ class EditNoteViewModel(
 
 // 5. La Factory ahora también necesita el noteId
 class EditNoteViewModelFactory(
-    private val repository: NotasRepository,
+    private val repository: Notas_repository,
     private val noteId: Int
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

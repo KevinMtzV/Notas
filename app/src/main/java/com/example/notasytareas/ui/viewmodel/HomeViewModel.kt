@@ -3,7 +3,7 @@ package com.example.notasytareas.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.notasytareas.data.repository.NotasRepository
+import com.example.notasytareas.data.repository.Notas_repository
 import com.example.notasytareas.data.models.Nota
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-class HomeViewModel(private val repository: NotasRepository) : ViewModel() {
+class HomeViewModel(private val repository: Notas_repository) : ViewModel() {
 
     // Usamos StateFlow para exponer la lista de notas a la UI
     private val _listaNotas = MutableStateFlow<List<Nota>>(emptyList())
@@ -44,7 +44,7 @@ class HomeViewModel(private val repository: NotasRepository) : ViewModel() {
 }
 
 
-class HomeViewModelFactory(private val repository: NotasRepository) : ViewModelProvider.Factory {
+class HomeViewModelFactory(private val repository: Notas_repository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
