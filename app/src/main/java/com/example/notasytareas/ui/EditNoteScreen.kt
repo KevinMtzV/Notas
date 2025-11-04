@@ -1,33 +1,59 @@
 package com.example.notasytareas.ui
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.notasytareas.NotasApplication
+import com.example.notasytareas.R
 import com.example.notasytareas.ui.viewmodel.EditNoteViewModel
 import com.example.notasytareas.ui.viewmodel.EditNoteViewModelFactory
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.res.stringResource
-import com.example.notasytareas.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,62 +68,38 @@ fun EditNoteScreen(
         factory = EditNoteViewModelFactory(application.repository, noteId)
     )
 
-    val notaCargada by viewModel.notaCargada.collectAsState()
-
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var isDone by remember { mutableStateOf(false) }
-    var fechaLimite by remember { mutableStateOf<Long?>(null) }
-    var showDatePicker by remember { mutableStateOf(false) }
-
-    var datosCargados by remember { mutableStateOf(false) }
-
-    LaunchedEffect(key1 = notaCargada) { 
-        if (notaCargada != null && !datosCargados) {
-            title = notaCargada!!.titulo
-            description = notaCargada!!.contenido
-            isDone = notaCargada!!.isDone
-            fechaLimite = notaCargada!!.fechaLimite
-            datosCargados = true
-        }
-    }
+    val uiState by viewModel.uiState.collectAsState()
 
     val isTask = type == "task"
-    val screenTitle = if (viewModel.isNuevaNota) { 
+    val screenTitle = if (viewModel.isNuevaNota) {
         if (isTask) stringResource(R.string.new_task_title) else stringResource(R.string.new_note_title)
     } else {
         if (isTask) stringResource(R.string.edit_task_title) else stringResource(R.string.edit_note_title)
     }
 
     val onSaveClick = {
-        viewModel.guardarNota(
-            titulo = title,
-            contenido = description,
-            isTask = isTask,
-            isDone = isDone,
-            fechaLimite = fechaLimite
-        )
+        viewModel.guardarNota(isTask = isTask)
         onBack()
     }
 
-    if (showDatePicker) {
+    if (uiState.showDatePicker) {
         val calendar = Calendar.getInstance()
-        calendar.timeInMillis = fechaLimite ?: System.currentTimeMillis()
+        calendar.timeInMillis = uiState.fechaLimite ?: System.currentTimeMillis()
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = calendar.timeInMillis
         )
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { viewModel.onShowDatePickerChange(false) },
             confirmButton = {
                 TextButton(onClick = {
-                    showDatePicker = false
-                    fechaLimite = datePickerState.selectedDateMillis
+                    viewModel.onShowDatePickerChange(false)
+                    viewModel.onFechaLimiteChange(datePickerState.selectedDateMillis)
                 }) {
                     Text(stringResource(R.string.accept))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
+                TextButton(onClick = { viewModel.onShowDatePickerChange(false) }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -109,7 +111,7 @@ fun EditNoteScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(screenTitle) }, 
+                title = { Text(screenTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -148,14 +150,14 @@ fun EditNoteScreen(
         ) {
 
             Text(
-                text = screenTitle, 
+                text = screenTitle,
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
 
             OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
+                value = uiState.title,
+                onValueChange = { viewModel.onTitleChange(it) },
                 label = { Text(stringResource(R.string.title)) },
                 placeholder = {
                     Text(
@@ -170,8 +172,8 @@ fun EditNoteScreen(
             )
 
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
+                value = uiState.description,
+                onValueChange = { viewModel.onDescriptionChange(it) },
                 label = { Text(stringResource(R.string.description)) },
                 placeholder = { Text(stringResource(R.string.description_placeholder)) },
                 modifier = Modifier
@@ -186,16 +188,16 @@ fun EditNoteScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Checkbox(
-                        checked = isDone, 
-                        onCheckedChange = { isDone = it },
+                        checked = uiState.isDone,
+                        onCheckedChange = { viewModel.onIsDoneChange(it) },
                         colors = CheckboxDefaults.colors(
                             checkedColor = MaterialTheme.colorScheme.primary
                         )
                     )
                     Text(
-                        text = if (isDone) stringResource(R.string.task_completed) else stringResource(R.string.task_pending),
+                        text = if (uiState.isDone) stringResource(R.string.task_completed) else stringResource(R.string.task_pending),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = if (isDone)
+                        color = if (uiState.isDone)
                             MaterialTheme.colorScheme.primary
                         else
                             MaterialTheme.colorScheme.onSurface
@@ -217,7 +219,7 @@ fun EditNoteScreen(
                             fontWeight = FontWeight.SemiBold
                         )
 
-                        if (fechaLimite != null) {
+                        if (uiState.fechaLimite != null) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Default.DateRange,
@@ -226,12 +228,14 @@ fun EditNoteScreen(
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = formatFecha(fechaLimite!!),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                                uiState.fechaLimite?.let {
+                                    Text(
+                                        text = formatFecha(it, "dd/MM/yyyy"),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
                             }
                         } else {
                             Text(
@@ -241,8 +245,8 @@ fun EditNoteScreen(
                             )
                         }
 
-                        OutlinedButton(onClick = { showDatePicker = true }) {
-                            Text(if (fechaLimite == null) stringResource(R.string.add_date) else stringResource(R.string.change_date))
+                        OutlinedButton(onClick = { viewModel.onShowDatePickerChange(true) }) {
+                            Text(if (uiState.fechaLimite == null) stringResource(R.string.add_date) else stringResource(R.string.change_date))
                         }
                     }
                 }
@@ -265,7 +269,7 @@ fun PreviewEditNoteScreenNote() {
     EditNoteScreen(
         onBack = {},
         type = "note",
-        noteId = -1 
+        noteId = -1
     )
 }
 

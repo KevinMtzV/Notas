@@ -1,14 +1,33 @@
 package com.example.notasytareas.ui
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -17,26 +36,23 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.notasytareas.NotasApplication
 import com.example.notasytareas.data.models.Nota
-import com.example.notasytareas.ui.viewmodel.EditNoteViewModel
-import com.example.notasytareas.ui.viewmodel.EditNoteViewModelFactory
+import com.example.notasytareas.ui.viewmodel.NoteDetailViewModel
+import com.example.notasytareas.ui.viewmodel.NoteDetailViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteDetailScreen(
     noteId: Int,
     onBack: () -> Unit,
-    // Devuelve el tipo y el ID para la navegación
     onEditClick: (type: String, id: Int) -> Unit
 ) {
-    // 1. Reutilizamos el ViewModel para cargar la nota
     val application = LocalContext.current.applicationContext as NotasApplication
-    val viewModel: EditNoteViewModel = viewModel(
+    val viewModel: NoteDetailViewModel = viewModel(
         key = "detail_${noteId}",
-        factory = EditNoteViewModelFactory(application.repository, noteId)
+        factory = NoteDetailViewModelFactory(application.repository, noteId)
     )
 
-    // 2. Observamos la nota cargada
-    val nota by viewModel.notaCargada.collectAsState()
+    val nota by viewModel.nota.collectAsState()
 
     Scaffold(
         topBar = {
@@ -62,13 +78,11 @@ fun NoteDetailScreen(
             }
         }
     ) { innerPadding ->
-        // Mostramos un indicador de carga mientras la nota es nula
         if (nota == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
-            // Cuando la nota carga, mostramos los detalles (solo lectura)
             LoadedDetailContent(nota = nota!!, modifier = Modifier.padding(innerPadding))
         }
     }
@@ -83,14 +97,12 @@ private fun LoadedDetailContent(nota: Nota, modifier: Modifier = Modifier) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Título
         Text(
             text = nota.titulo,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
 
-        // Fecha Límite (si es tarea y existe)
         if (nota.isTask && nota.fechaLimite != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -109,7 +121,6 @@ private fun LoadedDetailContent(nota: Nota, modifier: Modifier = Modifier) {
             }
         }
 
-        // Estado (si es tarea)
         if (nota.isTask) {
             val estado = if (nota.isDone) "Completada" else "Pendiente"
             Text(
@@ -119,10 +130,8 @@ private fun LoadedDetailContent(nota: Nota, modifier: Modifier = Modifier) {
             )
         }
 
-        // Divider
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        // Contenido
         Text(
             text = nota.contenido,
             style = MaterialTheme.typography.bodyLarge

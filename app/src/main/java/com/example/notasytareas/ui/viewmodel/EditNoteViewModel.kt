@@ -3,69 +3,92 @@ package com.example.notasytareas.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.notasytareas.data.repository.Notas_repository
 import com.example.notasytareas.data.models.Nota
+import com.example.notasytareas.data.repository.Notas_repository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-// 1. El ViewModel ahora toma el noteId
+data class EditNoteUiState(
+    val title: String = "",
+    val description: String = "",
+    val isDone: Boolean = false,
+    val fechaLimite: Long? = null,
+    val showDatePicker: Boolean = false
+)
+
 class EditNoteViewModel(
     private val repository: Notas_repository,
     private val noteId: Int
 ) : ViewModel() {
 
-    // 2. Estado para la nota que se carga desde la BD
-    private val _notaCargada = MutableStateFlow<Nota?>(null)
-    val notaCargada = _notaCargada.asStateFlow()
+    private val _uiState = MutableStateFlow(EditNoteUiState())
+    val uiState: StateFlow<EditNoteUiState> = _uiState.asStateFlow()
 
-    // 3. Variable para saber si es una nota nueva
+    private var notaActual: Nota? = null
+
     val isNuevaNota: Boolean = (noteId == -1)
 
     init {
-        // 4. Si NO es una nota nueva, la cargamos
         if (!isNuevaNota) {
             viewModelScope.launch {
-                // Usamos .first() para obtener el valor una sola vez
-                repository.obtenerNotaPorId(noteId).first { nota ->
-                    _notaCargada.value = nota
-                    true // Detiene la recolección
+                repository.obtenerNotaPorId(noteId).first { notaDb ->
+                    if (notaDb != null) {
+                        notaActual = notaDb
+                        _uiState.value = EditNoteUiState(
+                            title = notaDb.titulo,
+                            description = notaDb.contenido,
+                            isDone = notaDb.isDone,
+                            fechaLimite = notaDb.fechaLimite
+                        )
+                    }
+                    true
                 }
             }
         }
     }
 
-    /**
-     * Guarda la nota. Sabe si debe insertar o actualizar.
-     */
-    fun guardarNota(
-        titulo: String,
-        contenido: String,
-        isTask: Boolean,
-        isDone: Boolean,
-        fechaLimite: Long?
-    ) {
+    fun onTitleChange(newTitle: String) {
+        _uiState.value = _uiState.value.copy(title = newTitle)
+    }
+
+    fun onDescriptionChange(newDescription: String) {
+        _uiState.value = _uiState.value.copy(description = newDescription)
+    }
+
+    fun onIsDoneChange(isDone: Boolean) {
+        _uiState.value = _uiState.value.copy(isDone = isDone)
+    }
+
+    fun onFechaLimiteChange(newFecha: Long?) {
+        _uiState.value = _uiState.value.copy(fechaLimite = newFecha)
+    }
+
+    fun onShowDatePickerChange(show: Boolean) {
+        _uiState.value = _uiState.value.copy(showDatePicker = show)
+    }
+
+    fun guardarNota(isTask: Boolean) {
         viewModelScope.launch {
+            val currentState = _uiState.value
             if (isNuevaNota) {
-                // Es NUEVA: Insertar
                 val nuevaNota = Nota(
-                    titulo = titulo,
-                    contenido = contenido,
+                    titulo = currentState.title,
+                    contenido = currentState.description,
                     isTask = isTask,
-                    isDone = isDone,
-                    fechaLimite = fechaLimite
+                    isDone = currentState.isDone,
+                    fechaLimite = currentState.fechaLimite
                 )
                 repository.insertarNota(nuevaNota)
             } else {
-                // Es EXISTENTE: Actualizar
-                // Creamos una copia de la nota cargada con los datos nuevos
-                val notaActualizada = _notaCargada.value?.copy(
-                    titulo = titulo,
-                    contenido = contenido,
+                val notaActualizada = notaActual?.copy(
+                    titulo = currentState.title,
+                    contenido = currentState.description,
                     isTask = isTask,
-                    isDone = isDone,
-                    fechaLimite = fechaLimite
+                    isDone = currentState.isDone,
+                    fechaLimite = currentState.fechaLimite
                 )
                 if (notaActualizada != null) {
                     repository.actualizarNota(notaActualizada)
@@ -75,8 +98,6 @@ class EditNoteViewModel(
     }
 }
 
-
-// 5. La Factory ahora también necesita el noteId
 class EditNoteViewModelFactory(
     private val repository: Notas_repository,
     private val noteId: Int
@@ -84,7 +105,6 @@ class EditNoteViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(EditNoteViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            // 6. Pasamos el noteId al constructor del ViewModel
             return EditNoteViewModel(repository, noteId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
