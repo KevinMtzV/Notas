@@ -108,6 +108,7 @@ private fun PhoneNavigation() {
             EditNoteScreen(
                 type = type,
                 noteId = noteId,
+                onSave = { navController.popBackStack() },
                 onBack = {
                     navController.popBackStack()
                 }
@@ -158,6 +159,12 @@ private fun TabletNavigation() {
                     EditNoteScreen(
                         type = noteType,
                         noteId = selectedNoteId!!,
+                        onSave = {
+                            isEditing = false
+                            if (selectedNoteId == -1) {
+                                selectedNoteId = null
+                            }
+                        },
                         onBack = {
                             // "Atrás" nos devuelve a la vista previa (si no era una nota nueva)
                             isEditing = false
@@ -174,8 +181,9 @@ private fun TabletNavigation() {
                             // "Atrás" limpia la selección
                             selectedNoteId = null
                         },
-                        onEditClick = { _, _ ->
-                            // El botón de editar solo cambia el estado
+                        onEditClick = { type, _ ->
+                            // El botón de editar actualiza el tipo y cambia el estado
+                            noteType = type
                             isEditing = true
                         }
                     )

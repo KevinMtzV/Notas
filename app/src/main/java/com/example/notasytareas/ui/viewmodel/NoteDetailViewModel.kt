@@ -8,7 +8,7 @@ import com.example.notasytareas.data.models.Nota
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class NoteDetailViewModel(
@@ -21,9 +21,9 @@ class NoteDetailViewModel(
 
     init {
         viewModelScope.launch {
-            repository.obtenerNotaPorId(noteId).first { notaDb ->
+            // Usamos .collect para escuchar continuamente los cambios
+            repository.obtenerNotaPorId(noteId).collect { notaDb ->
                 _nota.value = notaDb
-                true
             }
         }
     }

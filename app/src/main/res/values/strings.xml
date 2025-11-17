@@ -41,4 +41,21 @@
     <string name="status">Estado</string>
     <string name="status_pending">Pendiente</string>
     <string name="status_completed">Completada</string>
+
+    <!-- Textos nuevos -->
+    <string name="edit_task">Editar Tarea</string>
+    <string name="edit_note">Editar Nota</string>
+    <string name="back_button_content_description">Volver</string>
+    <string name="save_note_content_description">Guardar Nota</string>
+    <string name="title_label">Título</string>
+    <string name="description_label">Descripción</string>
+    <string name="selected_image_content_description">Imagen seleccionada</string>
+    <string name="remove_image_content_description">Eliminar imagen</string>
+    <string name="add_images_button">Agregar Imágenes</string>
+    <string name="mark_as_completed">Marcar como completada</string>
+    <string name="no_due_date">Sin fecha límite</string>
+    <string name="add_due_date_button">Agregar Fecha</string>
+    <string name="change_due_date_button">Cambiar</string>
+    <string name="confirm_button">Aceptar</string>
+    <string name="cancel_button">Cancelar</string>
 </resources>

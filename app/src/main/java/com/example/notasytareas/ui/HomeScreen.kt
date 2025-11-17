@@ -1,11 +1,13 @@
 package com.example.notasytareas.ui
 
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,6 +41,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.notasytareas.NotasApplication
 import com.example.notasytareas.R
 import com.example.notasytareas.data.models.Nota
@@ -57,8 +62,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit,
-               onNoteClick: (Nota) -> Unit) {
+fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit, onNoteClick: (Nota) -> Unit) {
 
     val application = LocalContext.current.applicationContext as NotasApplication
     val viewModel: HomeViewModel = viewModel(
@@ -161,24 +165,38 @@ fun NoteList(items: List<Nota>, onNoteClick: (Nota) -> Unit) {
     ) {
         items(items) { note ->
             Card(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .clickable { onNoteClick(note) },
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(
-                        text = note.titulo,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = note.contenido,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                Row(modifier = Modifier.height(100.dp)) {
+                    if (note.photoUris.isNotEmpty()) {
+                        AsyncImage(
+                            model = Uri.parse(note.photoUris.first()),
+                            contentDescription = "Imagen de la nota",
+                            modifier = Modifier
+                                .width(100.dp)
+                                .fillMaxHeight()
+                                .clip(MaterialTheme.shapes.medium),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            text = note.titulo,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = note.contenido,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
@@ -186,7 +204,7 @@ fun NoteList(items: List<Nota>, onNoteClick: (Nota) -> Unit) {
 }
 
 @Composable
-fun TaskList(items: List<Nota>,onNoteClick: (Nota) -> Unit) {
+fun TaskList(items: List<Nota>, onNoteClick: (Nota) -> Unit) {
 
     val application = LocalContext.current.applicationContext as NotasApplication
     val viewModel: HomeViewModel = viewModel(
@@ -201,67 +219,83 @@ fun TaskList(items: List<Nota>,onNoteClick: (Nota) -> Unit) {
     ) {
         items(items) { task ->
             Card(
-                modifier = Modifier.fillMaxWidth().clickable { onNoteClick(task) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNoteClick(task) },
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    Checkbox(
-                        checked = task.isDone,
-                        onCheckedChange = { newState ->
-                            viewModel.actualizarNota(task.copy(isDone = newState))
-                        },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 8.dp)
-                    ) {
-                        Text(
-                            text = task.titulo,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = task.contenido,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (task.isDone)
-                                MaterialTheme.colorScheme.outline
-                            else
-                                MaterialTheme.colorScheme.onSurface,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                Row(modifier = Modifier.height(120.dp)) {
+                    if (task.photoUris.isNotEmpty()) {
+                        AsyncImage(
+                            model = Uri.parse(task.photoUris.first()),
+                            contentDescription = "Imagen de la tarea",
+                            modifier = Modifier
+                                .width(120.dp)
+                                .fillMaxHeight()
+                                .clip(MaterialTheme.shapes.medium),
+                            contentScale = ContentScale.Crop
                         )
                     }
 
-                    if (task.fechaLimite != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Checkbox(
+                            checked = task.isDone,
+                            onCheckedChange = { newState ->
+                                viewModel.actualizarNota(task.copy(isDone = newState))
+                            },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+
                         Column(
-                            horizontalAlignment = Alignment.End,
-                            modifier = Modifier.padding(start = 8.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp)
                         ) {
-                            Icon(
-                                Icons.Default.DateRange,
-                                contentDescription = stringResource(R.string.due_date_content_description),
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
                             Text(
-                                text = formatFecha(task.fechaLimite, "dd MMM"),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
+                                text = task.titulo,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = task.contenido,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (task.isDone)
+                                    MaterialTheme.colorScheme.outline
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        if (task.fechaLimite != null) {
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                modifier = Modifier.padding(start = 8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.DateRange,
+                                    contentDescription = stringResource(R.string.due_date_content_description),
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = formatFecha(date = Date(task.fechaLimite), format = "dd/MM/yyyy"),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }
@@ -274,12 +308,9 @@ fun formatFecha(date: Date, format: String): String {
     return SimpleDateFormat(format, Locale.getDefault()).format(date)
 }
 
-@Preview(
-    showSystemUi = true,
-    showBackground = true,
-    name = "Pantalla principal"
-)
+@Preview(showSystemUi = true, showBackground = true, name = "Pantalla principal")
 @Composable
 fun PreviewHomeScreen() {
-
+    // Para que la preview funcione, necesitamos un HomeViewModel de prueba.
+    // Aquí puedes crear una instancia con datos de ejemplo si es necesario.
 }

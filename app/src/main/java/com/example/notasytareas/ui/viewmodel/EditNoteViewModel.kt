@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 data class EditNoteUiState(
     val title: String = "",
     val description: String = "",
+    val photoUris: List<String> = emptyList(),
     val isDone: Boolean = false,
     val fechaLimite: Long? = null,
     val showDatePicker: Boolean = false
@@ -40,6 +41,7 @@ class EditNoteViewModel(
                         _uiState.value = EditNoteUiState(
                             title = notaDb.titulo,
                             description = notaDb.contenido,
+                            photoUris = notaDb.photoUris,
                             isDone = notaDb.isDone,
                             fechaLimite = notaDb.fechaLimite
                         )
@@ -56,6 +58,22 @@ class EditNoteViewModel(
 
     fun onDescriptionChange(newDescription: String) {
         _uiState.value = _uiState.value.copy(description = newDescription)
+    }
+
+    fun onPhotoUrisChange(newPhotoUris: List<String>) {
+        _uiState.value = _uiState.value.copy(photoUris = newPhotoUris)
+    }
+
+    fun addPhotoUri(uri: String) {
+        val currentUris = _uiState.value.photoUris.toMutableList()
+        currentUris.add(uri)
+        _uiState.value = _uiState.value.copy(photoUris = currentUris)
+    }
+
+    fun removePhotoUri(uri: String) {
+        val currentUris = _uiState.value.photoUris.toMutableList()
+        currentUris.remove(uri)
+        _uiState.value = _uiState.value.copy(photoUris = currentUris)
     }
 
     fun onIsDoneChange(isDone: Boolean) {
@@ -77,6 +95,7 @@ class EditNoteViewModel(
                 val nuevaNota = Nota(
                     titulo = currentState.title,
                     contenido = currentState.description,
+                    photoUris = currentState.photoUris,
                     isTask = isTask,
                     isDone = currentState.isDone,
                     fechaLimite = currentState.fechaLimite
@@ -86,6 +105,7 @@ class EditNoteViewModel(
                 val notaActualizada = notaActual?.copy(
                     titulo = currentState.title,
                     contenido = currentState.description,
+                    photoUris = currentState.photoUris,
                     isTask = isTask,
                     isDone = currentState.isDone,
                     fechaLimite = currentState.fechaLimite

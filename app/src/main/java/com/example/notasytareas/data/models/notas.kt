@@ -9,6 +9,7 @@ data class Nota(
     val id: Int = 0,
     val titulo: String,
     val contenido: String,
+    val photoUris: List<String> = emptyList(),
     val isTask: Boolean = false,
     val isDone: Boolean = false,
     val fechaLimite: Long? = null

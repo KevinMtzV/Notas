@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.example.notasytareas.data.models.Nota
 
-@Database(entities = [Nota::class], version = 2, exportSchema = false)
+@Database(entities = [Nota::class], version = 3, exportSchema = false)
+@TypeConverters(Converters::class)
 abstract class NotasDatabase : RoomDatabase() {
 
     abstract fun notasDao(): NotasDao
