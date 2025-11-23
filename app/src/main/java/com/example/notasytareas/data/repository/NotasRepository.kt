@@ -21,6 +21,8 @@ class NotasRepository(private val notasDao: NotasDao) : Notas_repository {
 
     override suspend fun actualizarNota(nota: Nota) = notasDao.actualizarNota(nota)
 
+    override suspend fun eliminarNota(nota: Nota) = notasDao.eliminarNota(nota)
+
 
     override fun obtenerNotaPorId(id: Int): Flow<Nota?> = notasDao.obtenerNotaPorId(id)
 

@@ -7,34 +7,27 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.notasytareas.data.models.Nota
 
-@Database(entities = [Nota::class], version = 3, exportSchema = false)
+@Database(entities = [Nota::class], version = 5, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class NotasDatabase : RoomDatabase() {
 
     abstract fun notasDao(): NotasDao
 
     companion object {
-        /**
-         * @Volatile asegura que el valor de INSTANCE esté siempre actualizado
-         * y sea el mismo para todos los hilos de ejecución.
-         */
         @Volatile
         private var INSTANCE: NotasDatabase? = null
 
         fun getDatabase(context: Context): NotasDatabase {
-            // Si INSTANCE no es nulo, la retorna.
-            // Si es nulo, crea la base de datos dentro de un bloque 'synchronized'.
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     NotasDatabase::class.java,
-                    "notas_database" // Nombre del archivo de la base de datos
+                    "notas_database"
                 )
-                    .fallbackToDestructiveMigration() // Política de migración (simple por ahora)
+                    .fallbackToDestructiveMigration()
                     .build()
 
                 INSTANCE = instance
-                // retorna la instancia
                 instance
             }
         }

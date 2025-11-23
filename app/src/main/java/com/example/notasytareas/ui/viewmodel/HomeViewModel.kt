@@ -58,6 +58,10 @@ class HomeViewModel(private val repository: Notas_repository) : ViewModel() {
     fun actualizarNota(nota: Nota) = viewModelScope.launch {
         repository.actualizarNota(nota)
     }
+
+    fun eliminarNota(nota: Nota) = viewModelScope.launch {
+        repository.eliminarNota(nota)
+    }
 }
 
 

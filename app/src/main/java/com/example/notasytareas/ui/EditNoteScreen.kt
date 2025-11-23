@@ -1,7 +1,13 @@
+
 package com.example.notasytareas.ui
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.MediaPlayer
+import android.media.MediaRecorder
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -22,11 +28,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
@@ -52,6 +61,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.notasytareas.NotasApplication
@@ -61,26 +71,138 @@ import com.example.notasytareas.ui.viewmodel.EditNoteViewModel
 import com.example.notasytareas.ui.viewmodel.EditNoteViewModelFactory
 import java.text.SimpleDateFormat
 import java.util.Date
-
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import java.io.File
+import androidx.compose.runtime.DisposableEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditNoteScreen(type: String, noteId: Int, onSave: () -> Unit, onBack: () -> Unit) {
+fun EditNoteScreen(
+    type: String,
+    noteId: Int,
+    onSave: () -> Unit,
+    onBack: () -> Unit,
+    onOpenCamera: () -> Unit,
+    imageUri: String?,
+    videoUri: String?
+) {
     val isTask = type == "task"
     val application = LocalContext.current.applicationContext as NotasApplication
     val viewModel: EditNoteViewModel = viewModel(
         key = "edit_${noteId}",
         factory = EditNoteViewModelFactory(application.repository, noteId)
     )
+    val context = LocalContext.current
+    var isRecording by remember { mutableStateOf(false) }
+    var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var audioFile by remember { mutableStateOf<File?>(null) }
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+    var currentlyPlaying by remember { mutableStateOf<String?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            mediaPlayer?.release()
+            mediaRecorder?.release()
+        }
+    }
+
+
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            isRecording = true
+        }
+    }
+
+
+    LaunchedEffect(isRecording) {
+        if (isRecording) {
+            val file = File(context.cacheDir, "audio_${System.currentTimeMillis()}.3gp")
+            val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(context)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaRecorder()
+            }
+            recorder.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+                setOutputFile(file.absolutePath)
+                try {
+                    prepare()
+                    start()
+                    audioFile = file
+                    mediaRecorder = this
+                } catch (e: Exception) {
+                    // Handle exception
+                }
+            }
+        } else {
+            mediaRecorder?.apply {
+                try {
+                    stop()
+                    release()
+                } catch (e: Exception) {
+                   // Handle exception
+                }
+            }
+            audioFile?.let {
+                viewModel.addAudioUri(it.toURI().toString())
+            }
+            mediaRecorder = null
+            audioFile = null
+        }
+    }
+
+    LaunchedEffect(imageUri) {
+        if (imageUri != null) {
+            viewModel.addPhotoUri(imageUri)
+        }
+    }
+
+    LaunchedEffect(videoUri) {
+        if (videoUri != null) {
+            viewModel.addVideoUri(videoUri)
+        }
+    }
 
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
+
 
     val imagePickerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
         uris.forEach { uri ->
             val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
             context.contentResolver.takePersistableUriPermission(uri, flag)
             viewModel.addPhotoUri(uri.toString())
+        }
+    }
+
+    val videoPickerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
+        uris.forEach { uri ->
+            val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            context.contentResolver.takePersistableUriPermission(uri, flag)
+            viewModel.addVideoUri(uri.toString())
+        }
+    }
+
+    val imagePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            imagePickerLauncher.launch("image/*")
+        }
+    }
+
+    val videoPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            videoPickerLauncher.launch("video/*")
         }
     }
 
@@ -111,11 +233,68 @@ fun EditNoteScreen(type: String, noteId: Int, onSave: () -> Unit, onBack: () -> 
             uiState = uiState,
             onTitleChange = viewModel::onTitleChange,
             onDescriptionChange = viewModel::onDescriptionChange,
-            onAddImageClick = { imagePickerLauncher.launch("image/*") },
+            onAddImageClick = {
+                val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    Manifest.permission.READ_MEDIA_IMAGES
+                } else {
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                }
+                if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+                    imagePickerLauncher.launch("image/*")
+                } else {
+                    imagePermissionLauncher.launch(permission)
+                }
+            },
             onRemoveImageClick = viewModel::removePhotoUri,
+            onAddVideoClick = {
+                val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    Manifest.permission.READ_MEDIA_VIDEO
+                } else {
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                }
+                if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+                    videoPickerLauncher.launch("video/*")
+                } else {
+                    videoPermissionLauncher.launch(permission)
+                }
+            },
+            onRemoveVideoClick = viewModel::removeVideoUri,
+            isRecording = isRecording,
+            onRecordAudioClick = {
+                 val permission = Manifest.permission.RECORD_AUDIO
+                 if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+                    isRecording = !isRecording
+                } else {
+                    audioPermissionLauncher.launch(permission)
+                }
+            },
+            onRemoveAudioClick = viewModel::removeAudioUri,
             onIsDoneChange = viewModel::onIsDoneChange,
             onShowDatePicker = { viewModel.onShowDatePickerChange(it) },
-            onDateSelected = { viewModel.onFechaLimiteChange(it) }
+            onDateSelected = { viewModel.onFechaLimiteChange(it) },
+            onOpenCameraClick = onOpenCamera,
+            currentlyPlayingAudioUri = currentlyPlaying,
+            onPlayAudioClick = { uri ->
+                 if (currentlyPlaying == uri) {
+                    mediaPlayer?.stop()
+                    mediaPlayer?.release()
+                    mediaPlayer = null
+                    currentlyPlaying = null
+                } else {
+                    mediaPlayer?.release()
+                    val newPlayer = MediaPlayer().apply {
+                        setDataSource(context, Uri.parse(uri))
+                        prepare()
+                        start()
+                        setOnCompletionListener {
+                            it.release()
+                            currentlyPlaying = null
+                        }
+                    }
+                    mediaPlayer = newPlayer
+                    currentlyPlaying = uri
+                }
+            }
         )
     }
 }
@@ -130,10 +309,19 @@ fun EditNoteContent(
     onDescriptionChange: (String) -> Unit,
     onAddImageClick: () -> Unit,
     onRemoveImageClick: (String) -> Unit,
+    onAddVideoClick: () -> Unit,
+    onRemoveVideoClick: (String) -> Unit,
+    isRecording: Boolean,
+    onRecordAudioClick: () -> Unit,
+    onRemoveAudioClick: (String) -> Unit,
     onIsDoneChange: (Boolean) -> Unit,
     onShowDatePicker: (Boolean) -> Unit,
-    onDateSelected: (Long?) -> Unit
+    onDateSelected: (Long?) -> Unit,
+    onOpenCameraClick: () -> Unit,
+    currentlyPlayingAudioUri: String?,
+    onPlayAudioClick: (String) -> Unit
 ) {
+    val context = LocalContext.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -157,16 +345,34 @@ fun EditNoteContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         if (uiState.photoUris.isNotEmpty()) {
+            Text("Fotos", style = MaterialTheme.typography.titleMedium)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(uiState.photoUris) { uri ->
                     Box(contentAlignment = Alignment.TopEnd) {
                         AsyncImage(
                             model = uri,
-                            contentDescription = stringResource(R.string.selected_image_content_description),
+                            contentDescription = "Selected image",
                             modifier = Modifier
                                 .height(120.dp)
                                 .width(120.dp)
-                                .clip(MaterialTheme.shapes.medium),
+                                .clip(MaterialTheme.shapes.medium)
+                                .clickable {
+                                    val parsedUri = Uri.parse(uri)
+                                    val viewUri = if (parsedUri.scheme == "file") {
+                                        val file = java.io.File(parsedUri.path!!)
+                                        val authority = "${context.packageName}.provider"
+                                        androidx.core.content.FileProvider.getUriForFile(context, authority, file)
+                                    } else {
+                                        parsedUri
+                                    }
+
+                                    val type = context.contentResolver.getType(viewUri)
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(viewUri, type)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(intent)
+                                },
                             contentScale = ContentScale.Crop
                         )
                         IconButton(
@@ -175,7 +381,7 @@ fun EditNoteContent(
                                 .padding(4.dp)
                                 .clip(CircleShape)
                         ) {
-                            Icon(Icons.Default.Cancel, contentDescription = stringResource(R.string.remove_image_content_description), tint = MaterialTheme.colorScheme.onPrimary)
+                            Icon(Icons.Default.Cancel, contentDescription = "Remove image", tint = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
                 }
@@ -183,16 +389,110 @@ fun EditNoteContent(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        Button(onClick = onAddImageClick) {
-            Icon(Icons.Default.AddAPhoto, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.add_images_button))
+        if (uiState.videoUris.isNotEmpty()) {
+            Text("Videos", style = MaterialTheme.typography.titleMedium)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(uiState.videoUris) { uri ->
+                    Box(contentAlignment = Alignment.TopEnd) {
+                        Box(
+                            modifier = Modifier
+                                .height(120.dp)
+                                .width(120.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .clickable {
+                                    val parsedUri = Uri.parse(uri)
+                                    val viewUri = if (parsedUri.scheme == "file") {
+                                        val file = java.io.File(parsedUri.path!!)
+                                        val authority = "${context.packageName}.provider"
+                                        androidx.core.content.FileProvider.getUriForFile(context, authority, file)
+                                    } else {
+                                        parsedUri
+                                    }
+
+                                    val type = context.contentResolver.getType(viewUri)
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(viewUri, type)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(intent)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Videocam, contentDescription = "Video", modifier = Modifier.size(48.dp))
+                        }
+                        IconButton(
+                            onClick = { onRemoveVideoClick(uri) },
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .clip(CircleShape)
+                        ) {
+                            Icon(Icons.Default.Cancel, contentDescription = "Remove video", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
+
+        if (uiState.audioUris.isNotEmpty()) {
+            Text("Audios", style = MaterialTheme.typography.titleMedium)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(uiState.audioUris) { uri ->
+                    Box(contentAlignment = Alignment.TopEnd) {
+                        Box(
+                            modifier = Modifier
+                                .height(120.dp)
+                                .width(120.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .clickable { onPlayAudioClick(uri) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (currentlyPlayingAudioUri == uri) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                contentDescription = "Audio",
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { onRemoveAudioClick(uri) },
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .clip(CircleShape)
+                        ) {
+                            Icon(Icons.Default.Cancel, contentDescription = "Remove audio", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+
+        Row {
+            Button(onClick = onAddImageClick) {
+                Text("Fotos")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = onAddVideoClick) {
+                Text("Videos")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = onOpenCameraClick) {
+                Text("Cámara")
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = onRecordAudioClick) {
+            Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, contentDescription = if(isRecording) "Stop recording" else "Record audio" )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(if (isRecording) "Detener grabación" else "Grabar audio")
+        }
+
 
         if (isTask) {
             Spacer(modifier = Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.mark_as_completed))
+                Text("Marcar como terminada")
                 Spacer(modifier = Modifier.width(8.dp))
                 Checkbox(checked = uiState.isDone, onCheckedChange = onIsDoneChange)
             }
@@ -200,10 +500,10 @@ fun EditNoteContent(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.DateRange, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(uiState.fechaLimite?.let { SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(Date(it)) } ?: stringResource(R.string.no_due_date))
+                Text(uiState.fechaLimite?.let { SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(Date(it)) } ?: "Sin fecha límite")
                 Spacer(modifier = Modifier.weight(1f))
                 TextButton(onClick = { onShowDatePicker(true) }) {
-                    Text(if (uiState.fechaLimite == null) stringResource(R.string.add_due_date_button) else stringResource(R.string.change_due_date_button))
+                    Text(if (uiState.fechaLimite == null) "Añadir fecha límite" else "Cambiar fecha")
                 }
             }
         }
@@ -213,16 +513,18 @@ fun EditNoteContent(
             DatePickerDialog(
                 onDismissRequest = { onShowDatePicker(false) },
                 confirmButton = {
-                    TextButton(onClick = {
-                        onDateSelected(datePickerState.selectedDateMillis)
-                        onShowDatePicker(false)
-                    }) {
-                        Text(stringResource(R.string.confirm_button))
+                    TextButton(
+                        onClick = {
+                            onDateSelected(datePickerState.selectedDateMillis)
+                            onShowDatePicker(false)
+                        }
+                    ) {
+                        Text("Confirmar")
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { onShowDatePicker(false) }) {
-                        Text(stringResource(R.string.cancel_button))
+                        Text("Cancelar")
                     }
                 }
             ) {

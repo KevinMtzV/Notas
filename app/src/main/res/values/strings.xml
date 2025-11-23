@@ -1,61 +1,43 @@
 <resources>
     <string name="app_name">Notas y Tareas</string>
-    <string name="home_screen_title">Notas y Tareas</string>
-    <string name="add_fab_content_description">Agregar</string>
-    <string name="search_content_description">Buscar</string>
-    <string name="due_date_content_description">Fecha Límite</string>
-    <string name="save">Guardar</string>
-    <string name="edit">Editar</string>
-    <string name="back">Volver</string>
-    <string name="title">Título</string>
-    <string name="description">Descripción</string>
-    <string name="notes">Notas</string>
-    <string name="tasks">Tareas</string>
-    <string name="accept">Aceptar</string>
-    <string name="cancel">Cancelar</string>
-    <string name="save_task">Guardar tarea</string>
-    <string name="save_note">Guardar nota</string>
-    <string name="task_title_placeholder">Ej. Preparar entrega del proyecto</string>
-    <string name="note_title_placeholder">Ej. Ideas para nuevo diseño</string>
-    <string name="description_placeholder">Agrega los detalles aquí...</string>
-
-    <string name="search_placeholder">Buscar por título o descripción...</string>
-    <string name="add_note">Nueva nota</string>
-    <string name="add_task">Nueva tarea</string>
+    <string name="home_screen_title">Mis Notas y Tareas</string>
+    <string name="add_fab_content_description">Añadir nota o tarea</string>
+    <string name="add_note">Añadir Nota</string>
+    <string name="add_task">Añadir Tarea</string>
+    <string name="search_placeholder">Buscar por título...</string>
+    <string name="search_content_description">Campo de búsqueda</string>
+    <string name="notes">NOTAS</string>
+    <string name="tasks">TAREAS</string>
     <string name="no_results">No se encontraron resultados</string>
-    <string name="select_or_create_note">Selecciona una nota para verla o crea una nueva.</string>
+    <string name="due_date_content_description">Fecha de entrega</string>
+    <string name="note_image_preview">Vista previa de la imagen de la nota</string>
+    <string name="note_video_preview">Indicador de video en la nota</string>
 
-    <string name="new_note_title">Nueva nota</string>
-    <string name="new_task_title">Nueva tarea</string>
-    <string name="edit_note_title">Editar nota</string>
-    <string name="edit_task_title">Editar tarea</string>
-    <string name="task_completed">Tarea completada</string>
-    <string name="task_pending">Marcar como completada</string>
-    <string name="due_date_optional">Fecha Límite (opcional)</string>
-    <string name="add_date">Agregar fecha</string>
-    <string name="change_date">Cambiar fecha</string>
-    <string name="no_date_assigned">Aún no has asignado una fecha.</string>
-
-    <string name="detail_note_title">Detalle Nota</string>
-    <string name="detail_task_title">Detalle Tarea</string>
-    <string name="status">Estado</string>
-    <string name="status_pending">Pendiente</string>
-    <string name="status_completed">Completada</string>
-
-    <!-- Textos nuevos -->
-    <string name="edit_task">Editar Tarea</string>
+    <!-- Edit Note/Task Screen -->
     <string name="edit_note">Editar Nota</string>
-    <string name="back_button_content_description">Volver</string>
-    <string name="save_note_content_description">Guardar Nota</string>
+    <string name="edit_task">Editar Tarea</string>
+    <string name="back_button_content_description">Atrás</string>
+    <string name="save_note_content_description">Guardar</string>
     <string name="title_label">Título</string>
     <string name="description_label">Descripción</string>
     <string name="selected_image_content_description">Imagen seleccionada</string>
-    <string name="remove_image_content_description">Eliminar imagen</string>
-    <string name="add_images_button">Agregar Imágenes</string>
+    <string name="remove_image_content_description">Quitar imagen</string>
+    <string name="photos_section_title">Fotos</string>
+    <string name="videos_section_title">Videos</string>
+    <string name="video_content_description">Video</string>
+    <string name="remove_video_content_description">Quitar video</string>
+    <string name="add_photos_button">Fotos</string>
+    <string name="add_videos_button">Videos</string>
+    <string name="camera_button">Cámara</string>
     <string name="mark_as_completed">Marcar como completada</string>
-    <string name="no_due_date">Sin fecha límite</string>
-    <string name="add_due_date_button">Agregar Fecha</string>
-    <string name="change_due_date_button">Cambiar</string>
+    <string name="no_due_date">Sin fecha de entrega</string>
+    <string name="add_due_date_button">Añadir fecha</string>
+    <string name="change_due_date_button">Cambiar fecha</string>
     <string name="confirm_button">Aceptar</string>
     <string name="cancel_button">Cancelar</string>
+
+    <!-- Delete Dialog -->
+    <string name="delete_dialog_title">Eliminar</string>
+    <string name="delete_dialog_text">¿Estás seguro de que quieres eliminar este elemento de forma permanente?</string>
+    <string name="delete_button">Eliminar</string>
 </resources>

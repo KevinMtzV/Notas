@@ -15,6 +15,8 @@ data class EditNoteUiState(
     val title: String = "",
     val description: String = "",
     val photoUris: List<String> = emptyList(),
+    val videoUris: List<String> = emptyList(),
+    val audioUris: List<String> = emptyList(),
     val isDone: Boolean = false,
     val fechaLimite: Long? = null,
     val showDatePicker: Boolean = false
@@ -42,6 +44,8 @@ class EditNoteViewModel(
                             title = notaDb.titulo,
                             description = notaDb.contenido,
                             photoUris = notaDb.photoUris,
+                            videoUris = notaDb.videoUris,
+                            audioUris = notaDb.audioUris,
                             isDone = notaDb.isDone,
                             fechaLimite = notaDb.fechaLimite
                         )
@@ -60,10 +64,6 @@ class EditNoteViewModel(
         _uiState.value = _uiState.value.copy(description = newDescription)
     }
 
-    fun onPhotoUrisChange(newPhotoUris: List<String>) {
-        _uiState.value = _uiState.value.copy(photoUris = newPhotoUris)
-    }
-
     fun addPhotoUri(uri: String) {
         val currentUris = _uiState.value.photoUris.toMutableList()
         currentUris.add(uri)
@@ -74,6 +74,30 @@ class EditNoteViewModel(
         val currentUris = _uiState.value.photoUris.toMutableList()
         currentUris.remove(uri)
         _uiState.value = _uiState.value.copy(photoUris = currentUris)
+    }
+
+    fun addVideoUri(uri: String) {
+        val currentUris = _uiState.value.videoUris.toMutableList()
+        currentUris.add(uri)
+        _uiState.value = _uiState.value.copy(videoUris = currentUris)
+    }
+
+    fun removeVideoUri(uri: String) {
+        val currentUris = _uiState.value.videoUris.toMutableList()
+        currentUris.remove(uri)
+        _uiState.value = _uiState.value.copy(videoUris = currentUris)
+    }
+    
+    fun addAudioUri(uri: String) {
+        val currentUris = _uiState.value.audioUris.toMutableList()
+        currentUris.add(uri)
+        _uiState.value = _uiState.value.copy(audioUris = currentUris)
+    }
+
+    fun removeAudioUri(uri: String) {
+        val currentUris = _uiState.value.audioUris.toMutableList()
+        currentUris.remove(uri)
+        _uiState.value = _uiState.value.copy(audioUris = currentUris)
     }
 
     fun onIsDoneChange(isDone: Boolean) {
@@ -96,6 +120,8 @@ class EditNoteViewModel(
                     titulo = currentState.title,
                     contenido = currentState.description,
                     photoUris = currentState.photoUris,
+                    videoUris = currentState.videoUris,
+                    audioUris = currentState.audioUris,
                     isTask = isTask,
                     isDone = currentState.isDone,
                     fechaLimite = currentState.fechaLimite
@@ -106,6 +132,8 @@ class EditNoteViewModel(
                     titulo = currentState.title,
                     contenido = currentState.description,
                     photoUris = currentState.photoUris,
+                    videoUris = currentState.videoUris,
+                    audioUris = currentState.audioUris,
                     isTask = isTask,
                     isDone = currentState.isDone,
                     fechaLimite = currentState.fechaLimite

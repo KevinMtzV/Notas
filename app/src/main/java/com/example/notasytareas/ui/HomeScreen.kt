@@ -1,7 +1,9 @@
 package com.example.notasytareas.ui
 
 import android.net.Uri
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,10 +18,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.PlayCircleFilled
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -36,12 +41,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -73,6 +83,23 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit, onNoteClick: (Nota) -> Uni
     val showMenu by viewModel.showMenu.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val filteredList by viewModel.listaNotasFiltradas.collectAsState(initial = emptyList())
+
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var noteToDelete by remember { mutableStateOf<Nota?>(null) }
+
+    if (showDeleteDialog && noteToDelete != null) {
+        DeleteConfirmationDialog(
+            onConfirm = {
+                viewModel.eliminarNota(noteToDelete!!)
+                showDeleteDialog = false
+                noteToDelete = null
+            },
+            onDismiss = {
+                showDeleteDialog = false
+                noteToDelete = null
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -145,10 +172,14 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit, onNoteClick: (Nota) -> Uni
                     )
                 }
             } else {
+                val onLongPress = { nota: Nota ->
+                    noteToDelete = nota
+                    showDeleteDialog = true
+                }
                 if (selectedTab == 0) {
-                    NoteList(filteredList, onNoteClick = onNoteClick)
+                    NoteList(filteredList, onNoteClick = onNoteClick, onLongPress = onLongPress)
                 } else {
-                    TaskList(filteredList, onNoteClick = onNoteClick)
+                    TaskList(filteredList, onNoteClick = onNoteClick, onLongPress = onLongPress)
                 }
             }
         }
@@ -156,7 +187,27 @@ fun HomeScreen(onAddClick: (isTask: Boolean) -> Unit, onNoteClick: (Nota) -> Uni
 }
 
 @Composable
-fun NoteList(items: List<Nota>, onNoteClick: (Nota) -> Unit) {
+fun DeleteConfirmationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.delete_dialog_title)) },
+        text = { Text(stringResource(R.string.delete_dialog_text)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.delete_button))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel_button))
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun NoteList(items: List<Nota>, onNoteClick: (Nota) -> Unit, onLongPress: (Nota) -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -167,21 +218,14 @@ fun NoteList(items: List<Nota>, onNoteClick: (Nota) -> Unit) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onNoteClick(note) },
+                    .combinedClickable(
+                        onClick = { onNoteClick(note) },
+                        onLongClick = { onLongPress(note) }
+                    ),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Row(modifier = Modifier.height(100.dp)) {
-                    if (note.photoUris.isNotEmpty()) {
-                        AsyncImage(
-                            model = Uri.parse(note.photoUris.first()),
-                            contentDescription = "Imagen de la nota",
-                            modifier = Modifier
-                                .width(100.dp)
-                                .fillMaxHeight()
-                                .clip(MaterialTheme.shapes.medium),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
+                    MediaPreview(note = note)
                     Column(Modifier.padding(16.dp)) {
                         Text(
                             text = note.titulo,
@@ -203,8 +247,9 @@ fun NoteList(items: List<Nota>, onNoteClick: (Nota) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TaskList(items: List<Nota>, onNoteClick: (Nota) -> Unit) {
+fun TaskList(items: List<Nota>, onNoteClick: (Nota) -> Unit, onLongPress: (Nota) -> Unit) {
 
     val application = LocalContext.current.applicationContext as NotasApplication
     val viewModel: HomeViewModel = viewModel(
@@ -221,21 +266,14 @@ fun TaskList(items: List<Nota>, onNoteClick: (Nota) -> Unit) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onNoteClick(task) },
+                    .combinedClickable(
+                        onClick = { onNoteClick(task) },
+                        onLongClick = { onLongPress(task) }
+                    ),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Row(modifier = Modifier.height(120.dp)) {
-                    if (task.photoUris.isNotEmpty()) {
-                        AsyncImage(
-                            model = Uri.parse(task.photoUris.first()),
-                            contentDescription = "Imagen de la tarea",
-                            modifier = Modifier
-                                .width(120.dp)
-                                .fillMaxHeight()
-                                .clip(MaterialTheme.shapes.medium),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
+                    MediaPreview(note = task)
 
                     Row(
                         modifier = Modifier
@@ -300,6 +338,36 @@ fun TaskList(items: List<Nota>, onNoteClick: (Nota) -> Unit) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun MediaPreview(note: Nota) {
+    if (note.photoUris.isNotEmpty()) {
+        AsyncImage(
+            model = Uri.parse(note.photoUris.first()),
+            contentDescription = stringResource(R.string.note_image_preview),
+            modifier = Modifier
+                .width(100.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)),
+            contentScale = ContentScale.Crop
+        )
+    } else if (note.videoUris.isNotEmpty()) {
+        Box(
+            modifier = Modifier
+                .width(100.dp)
+                .fillMaxHeight()
+                .background(Color.LightGray),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlayCircleFilled,
+                contentDescription = stringResource(R.string.note_video_preview),
+                tint = Color.White,
+                modifier = Modifier.size(48.dp)
+            )
         }
     }
 }

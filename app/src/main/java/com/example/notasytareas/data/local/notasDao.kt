@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Delete
 import androidx.room.Update
 import com.example.notasytareas.data.models.Nota
 import kotlinx.coroutines.flow.Flow // Importante usar Flow
@@ -28,6 +29,9 @@ interface NotasDao {
     // Aquí podrías añadir @Update y @Delete después
     @Update
     suspend fun actualizarNota(nota: Nota)
+
+    @Delete
+    suspend fun eliminarNota(nota: Nota)
 
     @Query("SELECT * FROM notas_tabla WHERE id = :id")
     fun obtenerNotaPorId(id: Int): Flow<Nota?> // 'Nota?' por si el ID no existe

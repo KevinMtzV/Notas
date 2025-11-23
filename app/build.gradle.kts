@@ -64,4 +64,10 @@ dependencies {
     kapt(libs.androidx.room.compiler)
     implementation(libs.androidx.material3.windowSizeClass)
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("androidx.camera:camera-core:1.3.3")
+    implementation("androidx.camera:camera-camera2:1.3.3")
+    implementation("androidx.camera:camera-lifecycle:1.3.3")
+    implementation("androidx.camera:camera-video:1.3.3")
+    implementation("androidx.camera:camera-view:1.3.3")
+    implementation("androidx.camera:camera-extensions:1.3.3")
 }
