@@ -15,7 +15,7 @@
 
     <!-- Edit Note/Task Screen -->
     <string name="edit_note">Editar Nota</string>
-    <string name="edit_task">Editar Tarea</string>
+    <string name="edit_task">Editar Tarea</string>rag
     <string name="back_button_content_description">Atrás</string>
     <string name="save_note_content_description">Guardar</string>
     <string name="title_label">Título</string>
@@ -35,6 +35,15 @@
     <string name="change_due_date_button">Cambiar fecha</string>
     <string name="confirm_button">Aceptar</string>
     <string name="cancel_button">Cancelar</string>
+    <string name="is_done_label">Completada</string>
+    <string name="deadline_label">Fecha de entrega:</string>
+    <string name="set_deadline_content_description">Establecer fecha de entrega</string>
+    <string name="reminder_label">Recordatorio:</string>
+    <string name="set_reminder_content_description">Establecer recordatorio</string>
+    <string name="alarm_permission_dialog_title">Permiso para Alarmas</string>
+    <string name="alarm_permission_dialog_text">Para poder establecer recordatorios, la aplicación necesita que actives el permiso para programar alarmas. Puedes activarlo en los ajustes.</string>
+    <string name="go_to_settings_button">Ir a Ajustes</string>not_now_button
+    <string name="not_now_button">Ahora no</string>
 
     <!-- Delete Dialog -->
     <string name="delete_dialog_title">Eliminar</string>

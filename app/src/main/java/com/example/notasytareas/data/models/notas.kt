@@ -14,5 +14,6 @@ data class Nota(
     val audioUris: List<String> = emptyList(),
     val isTask: Boolean = false,
     val isDone: Boolean = false,
-    val fechaLimite: Long? = null
+    val fechaLimite: Long? = null,
+    val reminder: Long? = null
 )

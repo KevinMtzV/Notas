@@ -135,7 +135,7 @@ private fun TabletNavigation() {
     val currentNoteId = selectedNoteId ?: -1
     val editNoteViewModel: EditNoteViewModel = viewModel(
         key = "edit_${currentNoteId}",
-        factory = EditNoteViewModelFactory(application.repository, currentNoteId)
+        factory = EditNoteViewModelFactory(application.repository, currentNoteId, application)
     )
 
     if (showCamera) {

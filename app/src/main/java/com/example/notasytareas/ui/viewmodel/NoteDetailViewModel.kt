@@ -27,26 +27,6 @@ class NoteDetailViewModel(
             }
         }
     }
-
-    fun addPhotoUri(uri: String) {
-        _nota.value?.let { currentNota ->
-            val updatedUris = currentNota.photoUris + uri
-            val updatedNota = currentNota.copy(photoUris = updatedUris)
-            viewModelScope.launch {
-                repository.actualizarNota(updatedNota)
-            }
-        }
-    }
-
-    fun addVideoUri(uri: String) {
-        _nota.value?.let { currentNota ->
-            val updatedUris = currentNota.videoUris + uri
-            val updatedNota = currentNota.copy(videoUris = updatedUris)
-            viewModelScope.launch {
-                repository.actualizarNota(updatedNota)
-            }
-        }
-    }
 }
 
 class NoteDetailViewModelFactory(

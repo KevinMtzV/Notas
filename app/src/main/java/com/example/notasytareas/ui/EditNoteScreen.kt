@@ -2,12 +2,15 @@
 package com.example.notasytareas.ui
 
 import android.Manifest
+import android.app.AlarmManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -28,7 +31,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddAlert
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Mic
@@ -36,6 +40,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
@@ -49,15 +54,21 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -69,14 +80,9 @@ import com.example.notasytareas.R
 import com.example.notasytareas.ui.viewmodel.EditNoteUiState
 import com.example.notasytareas.ui.viewmodel.EditNoteViewModel
 import com.example.notasytareas.ui.viewmodel.EditNoteViewModelFactory
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import java.io.File
-import androidx.compose.runtime.DisposableEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,12 +96,12 @@ fun EditNoteScreen(
     videoUri: String?
 ) {
     val isTask = type == "task"
-    val application = LocalContext.current.applicationContext as NotasApplication
+    val context = LocalContext.current
+    val application = context.applicationContext as NotasApplication
     val viewModel: EditNoteViewModel = viewModel(
         key = "edit_${noteId}",
-        factory = EditNoteViewModelFactory(application.repository, noteId)
+        factory = EditNoteViewModelFactory(application.repository, noteId, context)
     )
-    val context = LocalContext.current
     var isRecording by remember { mutableStateOf(false) }
     var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
     var audioFile by remember { mutableStateOf<File?>(null) }
@@ -212,7 +218,7 @@ fun EditNoteScreen(
                 title = { Text(if (isTask) stringResource(R.string.edit_task) else stringResource(R.string.edit_note)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back_button_content_description))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back_button_content_description))
                     }
                 }
             )
@@ -272,6 +278,10 @@ fun EditNoteScreen(
             onIsDoneChange = viewModel::onIsDoneChange,
             onShowDatePicker = { viewModel.onShowDatePickerChange(it) },
             onDateSelected = { viewModel.onFechaLimiteChange(it) },
+            onShowReminderDatePicker = { viewModel.onShowReminderDatePickerChange(it) },
+            onReminderDateSelected = { viewModel.onReminderDateChange(it) },
+            onReminderTimeSelected = { hour, minute -> viewModel.onReminderTimeChange(hour, minute) },
+            onShowReminderTimePicker = { viewModel.onShowReminderTimePickerChange(it) },
             onOpenCameraClick = onOpenCamera,
             currentlyPlayingAudioUri = currentlyPlaying,
             onPlayAudioClick = { uri ->
@@ -317,11 +327,112 @@ fun EditNoteContent(
     onIsDoneChange: (Boolean) -> Unit,
     onShowDatePicker: (Boolean) -> Unit,
     onDateSelected: (Long?) -> Unit,
+    onShowReminderDatePicker: (Boolean) -> Unit,
+    onReminderDateSelected: (Long?) -> Unit,
+    onReminderTimeSelected: (Int, Int) -> Unit,
+    onShowReminderTimePicker: (Boolean) -> Unit,
     onOpenCameraClick: () -> Unit,
     currentlyPlayingAudioUri: String?,
     onPlayAudioClick: (String) -> Unit
 ) {
     val context = LocalContext.current
+    var showPermissionDialog by remember { mutableStateOf(false) }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                onShowReminderDatePicker(true)
+            }
+        }
+    )
+
+    if (showPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog = false },
+            title = { Text("Permiso para Alarmas") },
+            text = { Text("Para poder establecer recordatorios, la aplicación necesita que actives el permiso para programar alarmas. Puedes activarlo en los ajustes.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPermissionDialog = false
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+                        }
+                    }
+                ) { Text("Ir a Ajustes") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionDialog = false }) { Text("Ahora no") }
+            }
+        )
+    }
+
+    if (uiState.showDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { onShowDatePicker(false) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDateSelected(datePickerState.selectedDateMillis)
+                        onShowDatePicker(false)
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { onShowDatePicker(false) }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (uiState.showReminderDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { onShowReminderDatePicker(false) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onReminderDateSelected(datePickerState.selectedDateMillis)
+                        onShowReminderDatePicker(false)
+                        onShowReminderTimePicker(true)
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { onShowReminderDatePicker(false) }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (uiState.showReminderTimePicker) {
+        val timePickerState = rememberTimePickerState()
+        AlertDialog(
+            onDismissRequest = { onShowReminderTimePicker(false) },
+            title = { Text("Seleccionar Hora") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onReminderTimeSelected(timePickerState.hour, timePickerState.minute)
+                        onShowReminderTimePicker(false)
+                    }
+                ) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { onShowReminderTimePicker(false) }) { Text("Cancelar") }
+            },
+            text = {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    TimePicker(state = timePickerState)
+                }
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -372,163 +483,138 @@ fun EditNoteContent(
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
                                     context.startActivity(intent)
-                                },
-                            contentScale = ContentScale.Crop
+                                }
                         )
-                        IconButton(
-                            onClick = { onRemoveImageClick(uri) },
-                            modifier = Modifier
-                                .padding(4.dp)
-                                .clip(CircleShape)
-                        ) {
-                            Icon(Icons.Default.Cancel, contentDescription = "Remove image", tint = MaterialTheme.colorScheme.onPrimary)
+                        IconButton(onClick = { onRemoveImageClick(uri) }) {
+                            Icon(
+                                imageVector = Icons.Default.Cancel,
+                                contentDescription = "Eliminar imagen",
+                                tint = MaterialTheme.colorScheme.onError,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .size(24.dp)
+                            )
                         }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         if (uiState.videoUris.isNotEmpty()) {
             Text("Videos", style = MaterialTheme.typography.titleMedium)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(uiState.videoUris) { uri ->
                     Box(contentAlignment = Alignment.TopEnd) {
-                        Box(
-                            modifier = Modifier
-                                .height(120.dp)
-                                .width(120.dp)
-                                .clip(MaterialTheme.shapes.medium)
-                                .clickable {
-                                    val parsedUri = Uri.parse(uri)
-                                    val viewUri = if (parsedUri.scheme == "file") {
-                                        val file = java.io.File(parsedUri.path!!)
-                                        val authority = "${context.packageName}.provider"
-                                        androidx.core.content.FileProvider.getUriForFile(context, authority, file)
-                                    } else {
-                                        parsedUri
-                                    }
-
-                                    val type = context.contentResolver.getType(viewUri)
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        setDataAndType(viewUri, type)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(intent)
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Videocam, contentDescription = "Video", modifier = Modifier.size(48.dp))
+                        Box(modifier = Modifier.size(120.dp), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Videocam, contentDescription = "Video", modifier = Modifier.size(60.dp))
                         }
-                        IconButton(
-                            onClick = { onRemoveVideoClick(uri) },
-                            modifier = Modifier
-                                .padding(4.dp)
-                                .clip(CircleShape)
-                        ) {
-                            Icon(Icons.Default.Cancel, contentDescription = "Remove video", tint = MaterialTheme.colorScheme.onPrimary)
+                        IconButton(onClick = { onRemoveVideoClick(uri) }) {
+                            Icon(
+                                imageVector = Icons.Default.Cancel,
+                                contentDescription = "Eliminar video",
+                                tint = MaterialTheme.colorScheme.onError,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .size(24.dp)
+                            )
                         }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         if (uiState.audioUris.isNotEmpty()) {
             Text("Audios", style = MaterialTheme.typography.titleMedium)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(uiState.audioUris) { uri ->
                     Box(contentAlignment = Alignment.TopEnd) {
-                        Box(
-                            modifier = Modifier
-                                .height(120.dp)
-                                .width(120.dp)
-                                .clip(MaterialTheme.shapes.medium)
-                                .clickable { onPlayAudioClick(uri) },
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.size(120.dp), contentAlignment = Alignment.Center) {
+                            IconButton(onClick = { onPlayAudioClick(uri) }) {
+                                Icon(
+                                    if (currentlyPlayingAudioUri == uri) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                    contentDescription = "Reproducir audio",
+                                    modifier = Modifier.size(60.dp)
+                                )
+                            }
+                        }
+                        IconButton(onClick = { onRemoveAudioClick(uri) }) {
                             Icon(
-                                imageVector = if (currentlyPlayingAudioUri == uri) Icons.Default.Stop else Icons.Default.PlayArrow,
-                                contentDescription = "Audio",
-                                modifier = Modifier.size(48.dp)
+                                imageVector = Icons.Default.Cancel,
+                                contentDescription = "Eliminar audio",
+                                tint = MaterialTheme.colorScheme.onError,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .size(24.dp)
                             )
                         }
-                        IconButton(
-                            onClick = { onRemoveAudioClick(uri) },
-                            modifier = Modifier
-                                .padding(4.dp)
-                                .clip(CircleShape)
-                        ) {
-                            Icon(Icons.Default.Cancel, contentDescription = "Remove audio", tint = MaterialTheme.colorScheme.onPrimary)
-                        }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
 
-        Row {
-            Button(onClick = onAddImageClick) {
-                Text("Fotos")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = onAddVideoClick) {
-                Text("Videos")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = onOpenCameraClick) {
-                Text("Cámara")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Button(onClick = onAddImageClick) { Text("Imagen") }
+            Button(onClick = onAddVideoClick) { Text("Video") }
+            Button(onClick = onOpenCameraClick) { Text("Cámara") }
+            IconButton(onClick = onRecordAudioClick) {
+                Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, contentDescription = "Grabar audio")
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = onRecordAudioClick) {
-            Icon(if (isRecording) Icons.Default.Stop else Icons.Default.Mic, contentDescription = if(isRecording) "Stop recording" else "Record audio" )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(if (isRecording) "Detener grabación" else "Grabar audio")
-        }
-
 
         if (isTask) {
-            Spacer(modifier = Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Marcar como terminada")
-                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.is_done_label))
                 Checkbox(checked = uiState.isDone, onCheckedChange = onIsDoneChange)
             }
-            Spacer(modifier = Modifier.height(16.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.DateRange, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(uiState.fechaLimite?.let { SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(Date(it)) } ?: "Sin fecha límite")
-                Spacer(modifier = Modifier.weight(1f))
-                TextButton(onClick = { onShowDatePicker(true) }) {
-                    Text(if (uiState.fechaLimite == null) "Añadir fecha límite" else "Cambiar fecha")
+                Text(stringResource(R.string.deadline_label))
+                IconButton(onClick = { onShowDatePicker(true) }) {
+                    Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.set_deadline_content_description))
+                }
+                uiState.fechaLimite?.let {
+                    Text(SimpleDateFormat.getDateInstance().format(Date(it)))
+                    IconButton(onClick = { onDateSelected(null) }) {
+                        Icon(Icons.Default.Cancel, contentDescription = "Eliminar fecha límite")
+                    }
                 }
             }
-        }
 
-        if (uiState.showDatePicker) {
-            val datePickerState = rememberDatePickerState(initialSelectedDateMillis = uiState.fechaLimite)
-            DatePickerDialog(
-                onDismissRequest = { onShowDatePicker(false) },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            onDateSelected(datePickerState.selectedDateMillis)
-                            onShowDatePicker(false)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.reminder_label))
+                IconButton(onClick = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                            if (alarmManager.canScheduleExactAlarms()) {
+                                onShowReminderDatePicker(true)
+                            } else {
+                                showPermissionDialog = true
+                            }
+                        } else {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
-                    ) {
-                        Text("Confirmar")
+                    } else {
+                        onShowReminderDatePicker(true)
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { onShowDatePicker(false) }) {
-                        Text("Cancelar")
+                }) {
+                    Icon(Icons.Default.AddAlert, contentDescription = stringResource(R.string.set_reminder_content_description))
+                }
+                uiState.reminder?.let {
+                    Text(SimpleDateFormat.getDateTimeInstance().format(Date(it)))
+                    IconButton(onClick = { onReminderDateSelected(null) }) {
+                        Icon(Icons.Default.Cancel, contentDescription = "Eliminar recordatorio")
                     }
                 }
-            ) {
-                DatePicker(state = datePickerState)
             }
         }
     }
