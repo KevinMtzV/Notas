@@ -1,4 +1,3 @@
-
 package com.example.notasytareas.ui
 
 import android.Manifest
@@ -83,6 +82,7 @@ import com.example.notasytareas.ui.viewmodel.EditNoteViewModelFactory
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -154,7 +154,7 @@ fun EditNoteScreen(
                     stop()
                     release()
                 } catch (e: Exception) {
-                   // Handle exception
+                    // Handle exception
                 }
             }
             audioFile?.let {
@@ -226,8 +226,11 @@ fun EditNoteScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    viewModel.guardarNota(isTask)
-                    onSave()
+                    // AQUÍ ESTÁ LA CLAVE: Pasamos onSave dentro de las llaves
+                    // para que se ejecute SOLO cuando el ViewModel termine de guardar
+                    viewModel.guardarNota(isTask) {
+                        onSave()
+                    }
                 },
                 content = { Icon(Icons.Default.Save, contentDescription = stringResource(R.string.save_note_content_description)) }
             )
@@ -267,8 +270,8 @@ fun EditNoteScreen(
             onRemoveVideoClick = viewModel::removeVideoUri,
             isRecording = isRecording,
             onRecordAudioClick = {
-                 val permission = Manifest.permission.RECORD_AUDIO
-                 if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
+                val permission = Manifest.permission.RECORD_AUDIO
+                if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
                     isRecording = !isRecording
                 } else {
                     audioPermissionLauncher.launch(permission)
@@ -285,7 +288,7 @@ fun EditNoteScreen(
             onOpenCameraClick = onOpenCamera,
             currentlyPlayingAudioUri = currentlyPlaying,
             onPlayAudioClick = { uri ->
-                 if (currentlyPlaying == uri) {
+                if (currentlyPlaying == uri) {
                     mediaPlayer?.stop()
                     mediaPlayer?.release()
                     mediaPlayer = null
@@ -582,7 +585,10 @@ fun EditNoteContent(
                     Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.set_deadline_content_description))
                 }
                 uiState.fechaLimite?.let {
-                    Text(SimpleDateFormat.getDateInstance().format(Date(it)))
+                    // MEJORA: Formato explícito para la fecha límite
+                    val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                    Text(formatter.format(Date(it)))
+
                     IconButton(onClick = { onDateSelected(null) }) {
                         Icon(Icons.Default.Cancel, contentDescription = "Eliminar fecha límite")
                     }
@@ -610,7 +616,10 @@ fun EditNoteContent(
                     Icon(Icons.Default.AddAlert, contentDescription = stringResource(R.string.set_reminder_content_description))
                 }
                 uiState.reminder?.let {
-                    Text(SimpleDateFormat.getDateTimeInstance().format(Date(it)))
+                    // MEJORA: Formato explícito para el recordatorio con hora
+                    val formatter = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                    Text(formatter.format(Date(it)))
+
                     IconButton(onClick = { onReminderDateSelected(null) }) {
                         Icon(Icons.Default.Cancel, contentDescription = "Eliminar recordatorio")
                     }
