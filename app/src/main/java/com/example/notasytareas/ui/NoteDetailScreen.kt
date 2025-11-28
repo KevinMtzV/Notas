@@ -141,6 +141,12 @@ private fun LoadedDetailContent(nota: Nota, modifier: Modifier = Modifier) {
             }
         }
 
+        Text(
+            text = nota.contenido,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
         if (nota.reminder != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -288,10 +294,6 @@ private fun LoadedDetailContent(nota: Nota, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = nota.contenido,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(top = 8.dp)
-        )
+
     }
 }
