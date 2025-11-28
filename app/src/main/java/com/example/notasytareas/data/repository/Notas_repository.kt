@@ -9,4 +9,6 @@ interface Notas_repository {
     suspend fun actualizarNota(nota: Nota)
     suspend fun eliminarNota(nota: Nota)
     fun obtenerNotaPorId(id: Int): Flow<Nota?>
+
+    suspend fun obtenerNotasActivasParaRecordatorio(): List<Nota>
 }

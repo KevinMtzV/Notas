@@ -16,4 +16,6 @@ class NotasRepository(private val notasDao: NotasDao) : Notas_repository {
 
     override fun obtenerNotaPorId(id: Int): Flow<Nota?> = notasDao.obtenerNotaPorId(id)
 
+    override suspend fun obtenerNotasActivasParaRecordatorio(): List<Nota> = notasDao.obtenerNotasConRecordatorio()
+
 }

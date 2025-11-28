@@ -18,6 +18,10 @@ interface NotasDao {
     @Query("SELECT * FROM notas_tabla ORDER BY id DESC")
     fun obtenerTodasLasNotas(): Flow<List<Nota>>
 
+
+    @Query("SELECT * FROM notas_tabla WHERE reminder IS NOT NULL")
+    suspend fun obtenerNotasConRecordatorio(): List<Nota>
+
     @Update
     suspend fun actualizarNota(nota: Nota)
 
