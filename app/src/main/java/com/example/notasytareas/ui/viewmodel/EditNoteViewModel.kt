@@ -4,6 +4,8 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.Calendar
 import java.util.TimeZone
 
@@ -47,6 +50,11 @@ class EditNoteViewModel(
 
     val isNuevaNota: Boolean = (noteId == -1)
 
+    // --- NUEVO: Variables para control de archivos ---
+    private var isSaved = false // Para saber si guardamos o cancelamos
+    private val archivosNuevosCreados = mutableListOf<String>() // Lista de basura potencial
+    // ------------------------------------------------
+
     init {
         if (!isNuevaNota) {
             viewModelScope.launch {
@@ -70,6 +78,25 @@ class EditNoteViewModel(
         }
     }
 
+    // --- NUEVO: Función auxiliar para borrar archivos del disco ---
+    private fun borrarArchivoFisico(uriString: String) {
+        try {
+            val uri = Uri.parse(uriString)
+            // Solo borramos si es un archivo local (scheme "file")
+            // Los archivos de la galería (scheme "content") no los tocamos por seguridad
+            if (uri.scheme == "file") {
+                val file = File(uri.path!!)
+                if (file.exists()) {
+                    val deleted = file.delete()
+                    Log.d("Archivo", "Archivo eliminado: $uriString -> Exito: $deleted")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("Archivo", "Error al borrar archivo: ${e.message}")
+        }
+    }
+    // -------------------------------------------------------------
+
     fun onTitleChange(newTitle: String) {
         _uiState.value = _uiState.value.copy(title = newTitle)
     }
@@ -82,36 +109,53 @@ class EditNoteViewModel(
         val currentUris = _uiState.value.photoUris.toMutableList()
         currentUris.add(uri)
         _uiState.value = _uiState.value.copy(photoUris = currentUris)
+
+        // Agregamos a la lista de archivos nuevos de esta sesión
+        archivosNuevosCreados.add(uri)
     }
 
     fun removePhotoUri(uri: String) {
         val currentUris = _uiState.value.photoUris.toMutableList()
         currentUris.remove(uri)
         _uiState.value = _uiState.value.copy(photoUris = currentUris)
+
+        // Limpiamos de la lista de nuevos y borramos físicamente
+        archivosNuevosCreados.remove(uri)
+        borrarArchivoFisico(uri)
     }
 
     fun addVideoUri(uri: String) {
         val currentUris = _uiState.value.videoUris.toMutableList()
         currentUris.add(uri)
         _uiState.value = _uiState.value.copy(videoUris = currentUris)
+
+        archivosNuevosCreados.add(uri)
     }
 
     fun removeVideoUri(uri: String) {
         val currentUris = _uiState.value.videoUris.toMutableList()
         currentUris.remove(uri)
         _uiState.value = _uiState.value.copy(videoUris = currentUris)
+
+        archivosNuevosCreados.remove(uri)
+        borrarArchivoFisico(uri)
     }
 
     fun addAudioUri(uri: String) {
         val currentUris = _uiState.value.audioUris.toMutableList()
         currentUris.add(uri)
         _uiState.value = _uiState.value.copy(audioUris = currentUris)
+
+        archivosNuevosCreados.add(uri)
     }
 
     fun removeAudioUri(uri: String) {
         val currentUris = _uiState.value.audioUris.toMutableList()
         currentUris.remove(uri)
         _uiState.value = _uiState.value.copy(audioUris = currentUris)
+
+        archivosNuevosCreados.remove(uri)
+        borrarArchivoFisico(uri)
     }
 
     fun onIsDoneChange(isDone: Boolean) {
@@ -148,12 +192,11 @@ class EditNoteViewModel(
         val reminderDate = _uiState.value.tempReminderDate ?: return
 
         // 1. Creamos un calendario en UTC para LEER qué día seleccionó el usuario
-        // Esto evita que se reste el horario y nos mande al día anterior
         val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
         utcCalendar.timeInMillis = reminderDate
 
         // 2. Creamos un calendario LOCAL para ESTABLECER la alarma
-        val localCalendar = Calendar.getInstance() // Usa la zona horaria del celular
+        val localCalendar = Calendar.getInstance()
 
         // 3. Copiamos Año, Mes y Día del UTC al Local
         localCalendar.set(Calendar.YEAR, utcCalendar.get(Calendar.YEAR))
@@ -177,7 +220,7 @@ class EditNoteViewModel(
     fun onShowReminderDatePickerChange(show: Boolean) {
         _uiState.value = _uiState.value.copy(showReminderDatePicker = show)
     }
-    
+
     fun onShowReminderTimePickerChange(show: Boolean) {
         _uiState.value = _uiState.value.copy(showReminderTimePicker = show)
     }
@@ -188,10 +231,10 @@ class EditNoteViewModel(
         if (uiState.value.title.isBlank()) return
 
         val nota = Nota(
-            id = if (noteId == -1) 0 else noteId, // CORRECCIÓN EXTRA: Asegura que si es -1 lo trate como 0 para Room
+            id = if (noteId == -1) 0 else noteId,
             titulo = uiState.value.title,
             contenido = uiState.value.description,
-            photoUris = uiState.value.photoUris, // No olvides pasar las listas
+            photoUris = uiState.value.photoUris,
             videoUris = uiState.value.videoUris,
             audioUris = uiState.value.audioUris,
             isTask = isTask,
@@ -219,17 +262,33 @@ class EditNoteViewModel(
                     AlarmScheduler.scheduleAlarm(context, nota)
                 }
 
-                // ¡AQUÍ ES LA CLAVE!
+                // --- NUEVO: Marcamos que se guardó exitosamente ---
+                isSaved = true
+                // -------------------------------------------------
+
                 // Llamamos a onSuccess() solo cuando todo lo anterior terminó
                 onSuccess()
 
             } catch (e: Exception) {
-                // Manejo de errores (opcional: mostrar un Toast o Log)
                 e.printStackTrace()
             }
         }
     }
 
+    // --- NUEVO: Limpieza automática al salir sin guardar ---
+    override fun onCleared() {
+        super.onCleared()
+        // Si el usuario sale (back button) y NO guardó (isSaved es false)
+        if (!isSaved) {
+            Log.d("EditNoteViewModel", "Saliendo sin guardar. Limpiando archivos huerfanos.")
+
+            // Borramos solo los archivos creados en esta sesión
+            for (uri in archivosNuevosCreados) {
+                borrarArchivoFisico(uri)
+            }
+        }
+    }
+    // -------------------------------------------------------
 
     private fun scheduleReminder(noteId: Int, reminderTime: Long, title: String, content: String) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager

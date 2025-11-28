@@ -3,6 +3,10 @@ package com.example.notasytareas.ui
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Environment
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import android.net.Uri
 import android.os.Build
 import android.util.Log
@@ -62,7 +66,6 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
 import java.io.File
-import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -333,7 +336,16 @@ private fun takePhoto(
     imageCapture: ImageCapture,
     onImageCaptured: (Uri) -> Unit
 ) {
-    val file = File.createTempFile("IMG_", ".jpg", context.externalCacheDir)
+    // 1. Crear un nombre de archivo único basado en la fecha y hora
+    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+    val fileName = "IMG_$timeStamp.jpg"
+
+    // 2. Usar DIRECTORY_PICTURES dentro de los archivos de la app (Persistente)
+    // se guarda en: /Android/data/com.example.notasytareas/files/Pictures/
+    val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+
+    val file = File(storageDir, fileName)
+
     val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
 
     imageCapture.takePicture(
@@ -341,7 +353,8 @@ private fun takePhoto(
         ContextCompat.getMainExecutor(context),
         object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                val savedUri = outputFileResults.savedUri ?: Uri.fromFile(file)
+                // Usamos Uri.fromFile para asegurar que guardamos la ruta absoluta correcta
+                val savedUri = Uri.fromFile(file)
                 onImageCaptured(savedUri)
             }
 
@@ -357,7 +370,15 @@ private fun startRecording(
     videoCapture: VideoCapture<Recorder>,
     onRecordEvent: (VideoRecordEvent) -> Unit
 ): Recording {
-    val file = File.createTempFile("VID_", ".mp4", context.externalCacheDir)
+    // 1. Nombre único
+    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+    val fileName = "VID_$timeStamp.mp4"
+
+    // 2. Usar DIRECTORY_MOVIES (Persistente)
+    val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_MOVIES)
+
+    val file = File(storageDir, fileName)
+
     val outputOptions = FileOutputOptions.Builder(file).build()
 
     return videoCapture.output.prepareRecording(context, outputOptions)

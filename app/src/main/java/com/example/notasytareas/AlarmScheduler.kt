@@ -11,19 +11,19 @@ import com.example.notasytareas.data.models.Nota
 object AlarmScheduler {
 
     fun scheduleAlarm(context: Context, nota: Nota) {
-        // 1. Validar que tenga fecha y que sea futura
+        // Validar que tenga fecha y que sea futura
         if (nota.reminder == null || nota.reminder <= System.currentTimeMillis()) return
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        // 2. Crear el Intent que apunta a TU Receiver
+        // Crear el Intent que apunta a TU Receiver
         val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
             putExtra("note_id", nota.id)
             putExtra("note_title", nota.titulo)
             putExtra("note_content", nota.contenido)
         }
 
-        // 3. Crear el PendingIntent único para esta nota
+        // Crear el PendingIntent único para esta nota
         // Usamos el ID de la nota como request code para que sea único
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -32,7 +32,7 @@ object AlarmScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // 4. Programar la alarma
+        // Programar la alarma
         try {
             // setExactAndAllowWhileIdle asegura que suene aunque el cel esté en reposo (Doze mode)
             alarmManager.setExactAndAllowWhileIdle(
