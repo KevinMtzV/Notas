@@ -1,6 +1,5 @@
 package com.example.notasytareas.navigation
 
-// Imports necesarios para la lógica de Tablet
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -19,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-// (El resto de tus imports)
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -34,24 +32,38 @@ import com.example.notasytareas.ui.viewmodel.EditNoteViewModel
 import com.example.notasytareas.ui.viewmodel.EditNoteViewModelFactory
 
 @Composable
-fun AppNav(widthSizeClass: WindowWidthSizeClass) {
+fun AppNav(
+    widthSizeClass: WindowWidthSizeClass,
+    startNoteId: Int = -1,    // <--- RECIBIMOS EL ID
+    startIsTask: Boolean = false // <--- RECIBIMOS EL TIPO
+) {
 
     val isCompact = widthSizeClass == WindowWidthSizeClass.Compact
 
     if (isCompact) {
-        PhoneNavigation()
+        PhoneNavigation(startNoteId, startIsTask)
     } else {
-        TabletNavigation()
+        TabletNavigation(startNoteId, startIsTask)
     }
 }
 
 @Composable
-private fun PhoneNavigation() {
+private fun PhoneNavigation(startNoteId: Int, startIsTask: Boolean) {
     val navController = rememberNavController()
+
+    // DETERMINAR DESTINO INICIAL
+    // Si hay un ID válido, construimos la ruta directa a la pantalla de edición.
+    // Si no, vamos a "home".
+    val startDestination = if (startNoteId != -1) {
+        val type = if (startIsTask) "task" else "note"
+        "detail/${startNoteId}"
+    } else {
+        "home"
+    }
 
     NavHost(
         navController = navController,
-        startDestination = "home"
+        startDestination = startDestination
     ) {
 
         composable("home") {
@@ -74,7 +86,16 @@ private fun PhoneNavigation() {
 
             NoteDetailScreen(
                 noteId = noteId,
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    // Si vinimos directo de notificación, al volver queremos ir a Home, no salir de la app
+                    if (navController.previousBackStackEntry == null) {
+                        navController.navigate("home") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    } else {
+                        navController.popBackStack()
+                    }
+                },
                 onEditClick = { type, id ->
                     navController.navigate("edit/$type?noteId=$id")
                 }
@@ -100,8 +121,21 @@ private fun PhoneNavigation() {
             EditNoteScreen(
                 type = type,
                 noteId = noteId,
-                onSave = { navController.popBackStack() },
-                onBack = { navController.popBackStack() },
+                onSave = {
+                    // Si guardamos y vinimos de notificación, ir a Home
+                    if (navController.previousBackStackEntry == null) {
+                        navController.navigate("home") { popUpTo("home") { inclusive = true } }
+                    } else {
+                        navController.popBackStack()
+                    }
+                },
+                onBack = {
+                    if (navController.previousBackStackEntry == null) {
+                        navController.navigate("home") { popUpTo("home") { inclusive = true } }
+                    } else {
+                        navController.popBackStack()
+                    }
+                },
                 onOpenCamera = { navController.navigate("camera") },
                 imageUri = imageUri,
                 videoUri = videoUri
@@ -124,11 +158,21 @@ private fun PhoneNavigation() {
 }
 
 @Composable
-private fun TabletNavigation() {
+private fun TabletNavigation(startNoteId: Int, startIsTask: Boolean) {
 
-    var selectedNoteId by rememberSaveable { mutableStateOf<Int?>(null) }
-    var noteType by rememberSaveable { mutableStateOf("note") }
-    var isEditing by rememberSaveable { mutableStateOf(false) }
+    // 2. INICIALIZAR ESTADO DE TABLET
+    // Si venimos de notificación, inicializamos las variables con la nota seleccionada
+    // y en modo edición para que aparezca directamente.
+
+    var selectedNoteId by rememberSaveable {
+        mutableStateOf(if (startNoteId != -1) startNoteId else null)
+    }
+    var noteType by rememberSaveable {
+        mutableStateOf(if (startIsTask) "task" else "note")
+    }
+    var isEditing by rememberSaveable {
+        mutableStateOf(startNoteId != -1) // Si hay ID, empezamos editando
+    }
     var showCamera by rememberSaveable { mutableStateOf(false) }
 
     val application = LocalContext.current.applicationContext as NotasApplication

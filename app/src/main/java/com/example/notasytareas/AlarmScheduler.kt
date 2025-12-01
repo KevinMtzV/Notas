@@ -21,6 +21,7 @@ object AlarmScheduler {
             putExtra("note_id", nota.id)
             putExtra("note_title", nota.titulo)
             putExtra("note_content", nota.contenido)
+            putExtra("is_task", nota.isTask)
         }
 
         // Crear el PendingIntent único para esta nota

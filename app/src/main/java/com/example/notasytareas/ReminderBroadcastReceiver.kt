@@ -16,13 +16,14 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         val noteId = intent.getIntExtra("note_id", -1)
         val title = intent.getStringExtra("note_title") ?: "Tarea"
         val content = intent.getStringExtra("note_content") ?: "Es hora de tu tarea."
+        val isTask = intent.getBooleanExtra("is_task", false)
 
         if (noteId != -1) {
-            showNotification(context, noteId, title, content)
+            showNotification(context, noteId, title, content,isTask)
         }
     }
 
-    private fun showNotification(context: Context, noteId: Int, title: String, content: String) {
+    private fun showNotification(context: Context, noteId: Int, title: String, content: String, isTask: Boolean) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val channelId = "reminder_channel"
@@ -34,6 +35,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("note_id", noteId) // Para navegar a la nota si se abre la app desde la notificación
+            putExtra("is_task", isTask)
         }
         val pendingIntent = PendingIntent.getActivity(context, noteId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 

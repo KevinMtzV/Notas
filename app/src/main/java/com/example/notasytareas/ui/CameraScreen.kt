@@ -336,11 +336,11 @@ private fun takePhoto(
     imageCapture: ImageCapture,
     onImageCaptured: (Uri) -> Unit
 ) {
-    // 1. Crear un nombre de archivo único basado en la fecha y hora
+    // Crear un nombre de archivo único basado en la fecha y hora
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
     val fileName = "IMG_$timeStamp.jpg"
 
-    // 2. Usar DIRECTORY_PICTURES dentro de los archivos de la app (Persistente)
+    // Usar DIRECTORY_PICTURES dentro de los archivos de la app (Persistente)
     // se guarda en: /Android/data/com.example.notasytareas/files/Pictures/
     val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
 
@@ -370,11 +370,11 @@ private fun startRecording(
     videoCapture: VideoCapture<Recorder>,
     onRecordEvent: (VideoRecordEvent) -> Unit
 ): Recording {
-    // 1. Nombre único
+    // Nombre único
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
     val fileName = "VID_$timeStamp.mp4"
 
-    // 2. Usar DIRECTORY_MOVIES (Persistente)
+    // Usar DIRECTORY_MOVIES (Persistente)
     val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_MOVIES)
 
     val file = File(storageDir, fileName)
