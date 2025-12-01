@@ -50,9 +50,9 @@ class EditNoteViewModel(
 
     val isNuevaNota: Boolean = (noteId == -1)
 
-    // --- NUEVO: Variables para control de archivos ---
+    // Variables para control de archivos
     private var isSaved = false // Para saber si guardamos o cancelamos
-    private val archivosNuevosCreados = mutableListOf<String>() // Lista de basura potencial
+    private val archivosNuevosCreados = mutableListOf<String>() // Lista de archivos
     // ------------------------------------------------
 
     init {
@@ -78,7 +78,7 @@ class EditNoteViewModel(
         }
     }
 
-    // --- NUEVO: Función auxiliar para borrar archivos del disco ---
+    // Función auxiliar para borrar archivos del disco
     private fun borrarArchivoFisico(uriString: String) {
         try {
             val uri = Uri.parse(uriString)
@@ -191,25 +191,25 @@ class EditNoteViewModel(
         // Obtenemos la fecha cruda que seleccionó el DatePicker (que viene en UTC)
         val reminderDate = _uiState.value.tempReminderDate ?: return
 
-        // 1. Creamos un calendario en UTC para LEER qué día seleccionó el usuario
+        // Creamos un calendario en UTC para LEER qué día seleccionó el usuario
         val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
         utcCalendar.timeInMillis = reminderDate
 
-        // 2. Creamos un calendario LOCAL para ESTABLECER la alarma
+        // Creamos un calendario LOCAL para ESTABLECER la alarma
         val localCalendar = Calendar.getInstance()
 
-        // 3. Copiamos Año, Mes y Día del UTC al Local
+        // Copiamos Año, Mes y Día del UTC al Local
         localCalendar.set(Calendar.YEAR, utcCalendar.get(Calendar.YEAR))
         localCalendar.set(Calendar.MONTH, utcCalendar.get(Calendar.MONTH))
         localCalendar.set(Calendar.DAY_OF_MONTH, utcCalendar.get(Calendar.DAY_OF_MONTH))
 
-        // 4. Ponemos la hora que eligió el usuario en el TimePicker
+        // Ponemos la hora que eligió el usuario en el TimePicker
         localCalendar.set(Calendar.HOUR_OF_DAY, hour)
         localCalendar.set(Calendar.MINUTE, minute)
         localCalendar.set(Calendar.SECOND, 0)
         localCalendar.set(Calendar.MILLISECOND, 0)
 
-        // 5. Guardamos el resultado final
+        // Guardamos el resultado final
         _uiState.value = _uiState.value.copy(
             reminder = localCalendar.timeInMillis,
             showReminderTimePicker = false,
@@ -227,7 +227,7 @@ class EditNoteViewModel(
 
     fun guardarNota(isTask: Boolean, onSuccess: () -> Unit) {
 
-        // VALIDACIÓN: Si el título está vacío, no guardamos y NO cerramos la pantalla
+        // Si el título está vacío, no guardamos y NO cerramos la pantalla
         if (uiState.value.title.isBlank()) return
 
         val nota = Nota(
@@ -266,7 +266,7 @@ class EditNoteViewModel(
                 isSaved = true
                 // -------------------------------------------------
 
-                // Llamamos a onSuccess() solo cuando todo lo anterior terminó
+                // Llamamos a onSuccess() cuando termina
                 onSuccess()
 
             } catch (e: Exception) {
@@ -275,7 +275,7 @@ class EditNoteViewModel(
         }
     }
 
-    // --- NUEVO: Limpieza automática al salir sin guardar ---
+    // Limpieza automática al salir sin guardar ---
     override fun onCleared() {
         super.onCleared()
         // Si el usuario sale (back button) y NO guardó (isSaved es false)
