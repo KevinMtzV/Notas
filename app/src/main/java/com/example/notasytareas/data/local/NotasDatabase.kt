@@ -6,8 +6,9 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.notasytareas.data.models.Nota
+import com.example.notasytareas.data.models.Recordatorio
 
-@Database(entities = [Nota::class], version = 6, exportSchema = false)
+@Database(entities = [Nota::class, Recordatorio::class], version = 8, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class NotasDatabase : RoomDatabase() {
 

@@ -2,6 +2,7 @@ package com.example.notasytareas.data.repository
 
 import com.example.notasytareas.data.local.NotasDao
 import com.example.notasytareas.data.models.Nota
+import com.example.notasytareas.data.models.Recordatorio
 import kotlinx.coroutines.flow.Flow
 
 class NotasRepository(private val notasDao: NotasDao) : Notas_repository {
@@ -18,4 +19,18 @@ class NotasRepository(private val notasDao: NotasDao) : Notas_repository {
 
     override suspend fun obtenerNotasActivasParaRecordatorio(): List<Nota> = notasDao.obtenerNotasConRecordatorio()
 
+    suspend fun insertarRecordatorio(recordatorio: Recordatorio): Long {
+        return notasDao.insertarRecordatorio(recordatorio)
+    }
+    suspend fun insertarRecordatorios(recordatorios: List<Recordatorio>) = notasDao.insertarRecordatorios(recordatorios)
+    fun obtenerRecordatorios(notaId: Int) = notasDao.obtenerRecordatoriosDeNota(notaId)
+    suspend fun borrarRecordatoriosDeNota(notaId: Int) = notasDao.borrarRecordatoriosDeNota(notaId)
+
+    suspend fun obtenerRecordatoriosFuturos(tiempoActual: Long): List<Recordatorio> {
+        return notasDao.obtenerRecordatoriosFuturos(tiempoActual)
+    }
+
+    suspend fun obtenerNotaDirecta(id: Int): Nota? {
+        return notasDao.obtenerNotaDirecta(id)
+    }
 }

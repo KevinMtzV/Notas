@@ -51,14 +51,13 @@ fun AppNav(
 private fun PhoneNavigation(startNoteId: Int, startIsTask: Boolean) {
     val navController = rememberNavController()
 
-    // DETERMINAR DESTINO INICIAL
-    // Si hay un ID válido, construimos la ruta directa a la pantalla de edición.
-    // Si no, vamos a "home".
-    val startDestination = if (startNoteId != -1) {
-        val type = if (startIsTask) "task" else "note"
-        "detail/${startNoteId}"
-    } else {
-        "home"
+
+    val startDestination = "home"
+
+    androidx.compose.runtime.LaunchedEffect(key1 = startNoteId) {
+        if (startNoteId != -1) {
+            navController.navigate("detail/$startNoteId")
+        }
     }
 
     NavHost(
@@ -86,15 +85,9 @@ private fun PhoneNavigation(startNoteId: Int, startIsTask: Boolean) {
 
             NoteDetailScreen(
                 noteId = noteId,
+
                 onBack = {
-                    // Si vinimos directo de notificación, al volver queremos ir a Home, no salir de la app
-                    if (navController.previousBackStackEntry == null) {
-                        navController.navigate("home") {
-                            popUpTo("home") { inclusive = true }
-                        }
-                    } else {
-                        navController.popBackStack()
-                    }
+                    navController.popBackStack()
                 },
                 onEditClick = { type, id ->
                     navController.navigate("edit/$type?noteId=$id")
@@ -122,19 +115,11 @@ private fun PhoneNavigation(startNoteId: Int, startIsTask: Boolean) {
                 type = type,
                 noteId = noteId,
                 onSave = {
-                    // Si guardamos y vinimos de notificación, ir a Home
-                    if (navController.previousBackStackEntry == null) {
-                        navController.navigate("home") { popUpTo("home") { inclusive = true } }
-                    } else {
-                        navController.popBackStack()
-                    }
+                    // Simplemente volvemos atrás (al detalle o al home)
+                    navController.popBackStack()
                 },
                 onBack = {
-                    if (navController.previousBackStackEntry == null) {
-                        navController.navigate("home") { popUpTo("home") { inclusive = true } }
-                    } else {
-                        navController.popBackStack()
-                    }
+                    navController.popBackStack()
                 },
                 onOpenCamera = { navController.navigate("camera") },
                 imageUri = imageUri,

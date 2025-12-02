@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.notasytareas.AlarmScheduler
 import com.example.notasytareas.ReminderBroadcastReceiver
 import com.example.notasytareas.data.models.Nota
+import com.example.notasytareas.data.models.Recordatorio
 import com.example.notasytareas.data.repository.NotasRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +31,8 @@ data class EditNoteUiState(
     val audioUris: List<String> = emptyList(),
     val isDone: Boolean = false,
     val fechaLimite: Long? = null,
-    val reminder: Long? = null,
+    // CAMBIO 1: Reemplazamos el recordatorio único por una lista
+    val reminders: List<Recordatorio> = emptyList(),
     val showDatePicker: Boolean = false,
     val showReminderDatePicker: Boolean = false,
     val showReminderTimePicker: Boolean = false,
@@ -51,51 +53,52 @@ class EditNoteViewModel(
     val isNuevaNota: Boolean = (noteId == -1)
 
     // Variables para control de archivos
-    private var isSaved = false // Para saber si guardamos o cancelamos
-    private val archivosNuevosCreados = mutableListOf<String>() // Lista de archivos
+    private var isSaved = false
+    private val archivosNuevosCreados = mutableListOf<String>()
     // ------------------------------------------------
 
     init {
         if (!isNuevaNota) {
             viewModelScope.launch {
+                // 1. Cargar la Nota
                 repository.obtenerNotaPorId(noteId).first { notaDb ->
                     if (notaDb != null) {
                         notaActual = notaDb
-                        _uiState.value = EditNoteUiState(
+                        _uiState.value = _uiState.value.copy(
                             title = notaDb.titulo,
                             description = notaDb.contenido,
                             photoUris = notaDb.photoUris,
                             videoUris = notaDb.videoUris,
                             audioUris = notaDb.audioUris,
                             isDone = notaDb.isDone,
-                            fechaLimite = notaDb.fechaLimite,
-                            reminder = notaDb.reminder
+                            fechaLimite = notaDb.fechaLimite
+                            // reminder ya no se carga aquí, se carga abajo
                         )
                     }
                     true
+                }
+
+                // CAMBIO 2: Cargar los recordatorios asociados a esta nota
+                repository.obtenerRecordatorios(noteId).collect { listaRecordatorios ->
+                    _uiState.value = _uiState.value.copy(reminders = listaRecordatorios)
                 }
             }
         }
     }
 
-    // Función auxiliar para borrar archivos del disco
+    // --- Funciones de Archivos (Sin cambios) ---
     private fun borrarArchivoFisico(uriString: String) {
         try {
             val uri = Uri.parse(uriString)
-            // Solo borramos si es un archivo local (scheme "file")
-            // Los archivos de la galería (scheme "content") no los tocamos por seguridad
             if (uri.scheme == "file") {
                 val file = File(uri.path!!)
-                if (file.exists()) {
-                    val deleted = file.delete()
-                    Log.d("Archivo", "Archivo eliminado: $uriString -> Exito: $deleted")
-                }
+                if (file.exists()) file.delete()
             }
         } catch (e: Exception) {
             Log.e("Archivo", "Error al borrar archivo: ${e.message}")
         }
     }
-    // -------------------------------------------------------------
+    // -------------------------------------------
 
     fun onTitleChange(newTitle: String) {
         _uiState.value = _uiState.value.copy(title = newTitle)
@@ -105,12 +108,11 @@ class EditNoteViewModel(
         _uiState.value = _uiState.value.copy(description = newDescription)
     }
 
+    // --- Gestión de Multimedia (Sin cambios importantes) ---
     fun addPhotoUri(uri: String) {
         val currentUris = _uiState.value.photoUris.toMutableList()
         currentUris.add(uri)
         _uiState.value = _uiState.value.copy(photoUris = currentUris)
-
-        // Agregamos a la lista de archivos nuevos de esta sesión
         archivosNuevosCreados.add(uri)
     }
 
@@ -118,8 +120,6 @@ class EditNoteViewModel(
         val currentUris = _uiState.value.photoUris.toMutableList()
         currentUris.remove(uri)
         _uiState.value = _uiState.value.copy(photoUris = currentUris)
-
-        // Limpiamos de la lista de nuevos y borramos físicamente
         archivosNuevosCreados.remove(uri)
         borrarArchivoFisico(uri)
     }
@@ -128,7 +128,6 @@ class EditNoteViewModel(
         val currentUris = _uiState.value.videoUris.toMutableList()
         currentUris.add(uri)
         _uiState.value = _uiState.value.copy(videoUris = currentUris)
-
         archivosNuevosCreados.add(uri)
     }
 
@@ -136,7 +135,6 @@ class EditNoteViewModel(
         val currentUris = _uiState.value.videoUris.toMutableList()
         currentUris.remove(uri)
         _uiState.value = _uiState.value.copy(videoUris = currentUris)
-
         archivosNuevosCreados.remove(uri)
         borrarArchivoFisico(uri)
     }
@@ -145,7 +143,6 @@ class EditNoteViewModel(
         val currentUris = _uiState.value.audioUris.toMutableList()
         currentUris.add(uri)
         _uiState.value = _uiState.value.copy(audioUris = currentUris)
-
         archivosNuevosCreados.add(uri)
     }
 
@@ -153,7 +150,6 @@ class EditNoteViewModel(
         val currentUris = _uiState.value.audioUris.toMutableList()
         currentUris.remove(uri)
         _uiState.value = _uiState.value.copy(audioUris = currentUris)
-
         archivosNuevosCreados.remove(uri)
         borrarArchivoFisico(uri)
     }
@@ -166,19 +162,48 @@ class EditNoteViewModel(
         _uiState.value = _uiState.value.copy(fechaLimite = newFecha)
     }
 
+    // --- NUEVAS FUNCIONES PARA RECORDATORIOS MÚLTIPLES ---
+
+    // Agrega un recordatorio a la lista visual (aún no guardado en BD)
+    fun addReminder(time: Long) {
+        val safeId = if (noteId == -1) 0 else noteId
+        // Creamos un recordatorio con ID 0 (Room generará el ID real al guardar)
+        val nuevoRecordatorio = Recordatorio(notaId = safeId, time = time)
+
+        val listaActual = _uiState.value.reminders.toMutableList()
+        listaActual.add(nuevoRecordatorio)
+        _uiState.value = _uiState.value.copy(reminders = listaActual)
+    }
+
+    // Elimina un recordatorio de la lista y cancela su alarma si ya existía
+    fun removeReminder(recordatorio: Recordatorio) {
+        val listaActual = _uiState.value.reminders.toMutableList()
+        listaActual.remove(recordatorio)
+        _uiState.value = _uiState.value.copy(reminders = listaActual)
+
+        // Si el recordatorio tenía un ID real (ya estaba en BD), cancelamos la alarma ahora mismo
+        if (recordatorio.id > 0) {
+            AlarmScheduler.cancelAlarm(context, recordatorio.id)
+        }
+    }
+
+    // -----------------------------------------------------
+
     fun onShowDatePickerChange(show: Boolean) {
         _uiState.value = _uiState.value.copy(showDatePicker = show)
     }
 
+    // Manejo de Date/Time Pickers para Recordatorios
     fun onReminderDateChange(newReminderDate: Long?) {
         if (newReminderDate == null) {
+            // Si cancela, reseteamos pickers
             _uiState.value = _uiState.value.copy(
-                reminder = null,
                 tempReminderDate = null,
                 showReminderDatePicker = false,
                 showReminderTimePicker = false
             )
         } else {
+            // Si selecciona fecha, mostramos TimePicker
             _uiState.value = _uiState.value.copy(
                 tempReminderDate = newReminderDate,
                 showReminderDatePicker = false,
@@ -188,30 +213,26 @@ class EditNoteViewModel(
     }
 
     fun onReminderTimeChange(hour: Int, minute: Int) {
-        // Obtenemos la fecha cruda que seleccionó el DatePicker (que viene en UTC)
         val reminderDate = _uiState.value.tempReminderDate ?: return
 
-        // Creamos un calendario en UTC para LEER qué día seleccionó el usuario
+        // Lógica de Calendario (igual que antes)
         val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
         utcCalendar.timeInMillis = reminderDate
 
-        // Creamos un calendario LOCAL para ESTABLECER la alarma
         val localCalendar = Calendar.getInstance()
-
-        // Copiamos Año, Mes y Día del UTC al Local
         localCalendar.set(Calendar.YEAR, utcCalendar.get(Calendar.YEAR))
         localCalendar.set(Calendar.MONTH, utcCalendar.get(Calendar.MONTH))
         localCalendar.set(Calendar.DAY_OF_MONTH, utcCalendar.get(Calendar.DAY_OF_MONTH))
-
-        // Ponemos la hora que eligió el usuario en el TimePicker
         localCalendar.set(Calendar.HOUR_OF_DAY, hour)
         localCalendar.set(Calendar.MINUTE, minute)
         localCalendar.set(Calendar.SECOND, 0)
         localCalendar.set(Calendar.MILLISECOND, 0)
 
-        // Guardamos el resultado final
+        // CAMBIO 3: En lugar de reemplazar 'reminder', llamamos a addReminder
+        addReminder(localCalendar.timeInMillis)
+
+        // Reseteamos estados de los pickers
         _uiState.value = _uiState.value.copy(
-            reminder = localCalendar.timeInMillis,
             showReminderTimePicker = false,
             tempReminderDate = null
         )
@@ -227,7 +248,6 @@ class EditNoteViewModel(
 
     fun guardarNota(isTask: Boolean, onSuccess: () -> Unit) {
 
-        // Si el título está vacío, no guardamos y NO cerramos la pantalla
         if (uiState.value.title.isBlank()) return
 
         val nota = Nota(
@@ -240,33 +260,49 @@ class EditNoteViewModel(
             isTask = isTask,
             isDone = uiState.value.isDone,
             fechaLimite = uiState.value.fechaLimite,
-            reminder = uiState.value.reminder
+            reminder = null // Ya no usamos este campo en la tabla Notas
         )
 
         viewModelScope.launch {
             try {
+                // 1. Guardar o Actualizar la NOTA principal
+                val finalNoteId: Int
                 if (noteId == 0 || noteId == -1) {
-                    // INSERTAR
                     val nuevoIdLong = repository.insertarNota(nota)
-                    val nuevoId = nuevoIdLong.toInt()
-
-                    // Programar alarma con el ID real
-                    val notaGuardada = nota.copy(id = nuevoId)
-                    AlarmScheduler.scheduleAlarm(context, notaGuardada)
+                    finalNoteId = nuevoIdLong.toInt()
                 } else {
-                    // ACTUALIZAR
                     repository.actualizarNota(nota)
-
-                    // Reprogramar alarma
-                    AlarmScheduler.cancelAlarm(context, nota.id)
-                    AlarmScheduler.scheduleAlarm(context, nota)
+                    finalNoteId = noteId
                 }
 
-                // --- NUEVO: Marcamos que se guardó exitosamente ---
-                isSaved = true
-                // -------------------------------------------------
+                // Creamos una copia de la nota con el ID correcto para pasarla al Scheduler
+                val notaFinal = nota.copy(id = finalNoteId)
 
-                // Llamamos a onSuccess() cuando termina
+                // 2. Gestión de RECORDATORIOS (Borrado y Re-inserción)
+                // Estrategia: Borrar los recordatorios viejos de la BD para esta nota
+                // y guardar los que están actualmente en la lista visual.
+
+                if (noteId != -1) {
+                    // Si editamos, limpiamos alarmas viejas de la BD primero
+                    // (Opcional: podrías cancelar alarmas viejas aquí si no lo hiciste en removeReminder)
+                    repository.borrarRecordatoriosDeNota(finalNoteId)
+                }
+
+                // 3. Insertar nuevos recordatorios y programar alarmas
+                val recordatoriosParaGuardar = uiState.value.reminders.map {
+                    it.copy(id = 0, notaId = finalNoteId) // Aseguramos que tengan el ID de la nota correcto
+                }
+
+                recordatoriosParaGuardar.forEach { recordatorio ->
+                    // Insertamos en Room y obtenemos el ID generado (ej: 101, 102...)
+                    val newReminderId = repository.insertarRecordatorio(recordatorio)
+
+                    // Programamos la alarma usando el ID único del recordatorio
+                    val recordatorioGuardado = recordatorio.copy(id = newReminderId.toInt())
+                    AlarmScheduler.scheduleAlarm(context, notaFinal, recordatorioGuardado)
+                }
+
+                isSaved = true
                 onSuccess()
 
             } catch (e: Exception) {
@@ -275,37 +311,14 @@ class EditNoteViewModel(
         }
     }
 
-    // Limpieza automática al salir sin guardar ---
     override fun onCleared() {
         super.onCleared()
-        // Si el usuario sale (back button) y NO guardó (isSaved es false)
         if (!isSaved) {
             Log.d("EditNoteViewModel", "Saliendo sin guardar. Limpiando archivos huerfanos.")
-
-            // Borramos solo los archivos creados en esta sesión
             for (uri in archivosNuevosCreados) {
                 borrarArchivoFisico(uri)
             }
         }
-    }
-    // -------------------------------------------------------
-
-    private fun scheduleReminder(noteId: Int, reminderTime: Long, title: String, content: String) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
-            putExtra("note_id", noteId)
-            putExtra("note_title", title)
-            putExtra("note_content", content)
-        }
-        val pendingIntent = PendingIntent.getBroadcast(context, noteId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        alarmManager.setExact(AlarmManager.RTC_WAKEUP, reminderTime, pendingIntent)
-    }
-
-    private fun cancelReminder(noteId: Int) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, ReminderBroadcastReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(context, noteId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        alarmManager.cancel(pendingIntent)
     }
 }
 

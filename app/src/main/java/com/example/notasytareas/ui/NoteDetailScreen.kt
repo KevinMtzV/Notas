@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.PlayCircleOutline
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -51,11 +53,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.notasytareas.NotasApplication
 import com.example.notasytareas.data.models.Nota
+import com.example.notasytareas.data.models.Recordatorio
 import com.example.notasytareas.ui.viewmodel.NoteDetailViewModel
 import com.example.notasytareas.ui.viewmodel.NoteDetailViewModelFactory
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +75,8 @@ fun NoteDetailScreen(
     )
 
     val nota by viewModel.nota.collectAsState()
+    // 1. Observamos los recordatorios
+    val recordatorios by viewModel.recordatorios.collectAsState()
 
     Scaffold(
         topBar = {
@@ -101,13 +107,23 @@ fun NoteDetailScreen(
                 CircularProgressIndicator()
             }
         } else {
-            LoadedDetailContent(nota = nota!!, modifier = Modifier.padding(innerPadding))
+            LoadedDetailContent(
+                nota = nota!!,
+                recordatorios = recordatorios, // Pasamos la lista
+                onTaskStatusChanged = viewModel::onTaskStatusChanged, // Pasamos la función
+                modifier = Modifier.padding(innerPadding)
+            )
         }
     }
 }
 
 @Composable
-private fun LoadedDetailContent(nota: Nota, modifier: Modifier = Modifier) {
+private fun LoadedDetailContent(
+    nota: Nota,
+    recordatorios: List<Recordatorio>,
+    onTaskStatusChanged: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
 
     Column(
@@ -123,6 +139,30 @@ private fun LoadedDetailContent(nota: Nota, modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold
         )
 
+        // SECCIÓN CHECKBOX (Solo si es tarea)
+        if (nota.isTask) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onTaskStatusChanged(!nota.isDone) } // Click en todo el renglón
+                    .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f), shape = MaterialTheme.shapes.small)
+                    .padding(8.dp)
+            ) {
+                Checkbox(
+                    checked = nota.isDone,
+                    onCheckedChange = { onTaskStatusChanged(it) }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (nota.isDone) "Completada" else "Pendiente",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (nota.isDone) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+
         if (nota.isTask && nota.fechaLimite != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -133,7 +173,7 @@ private fun LoadedDetailContent(nota: Nota, modifier: Modifier = Modifier) {
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = SimpleDateFormat("dd 'de' MMMM, yyyy").format(Date(nota.fechaLimite!!)),
+                    text = SimpleDateFormat("dd 'de' MMMM, yyyy", Locale.getDefault()).format(Date(nota.fechaLimite!!)),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
@@ -147,34 +187,38 @@ private fun LoadedDetailContent(nota: Nota, modifier: Modifier = Modifier) {
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        if (nota.reminder != null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.AddAlert,
-                    contentDescription = "Recordatorio",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = SimpleDateFormat.getDateTimeInstance().format(Date(nota.reminder!!)),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
+        // SECCIÓN LISTA DE RECORDATORIOS
+        if (recordatorios.isNotEmpty()) {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Text(
+                text = "Recordatorios programados:",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                recordatorios.forEach { recordatorio ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.AddAlert,
+                            contentDescription = "Recordatorio",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.tertiary
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(recordatorio.time)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
         }
 
-        if (nota.isTask) {
-            val estado = if (nota.isDone) "Completada" else "Pendiente"
-            Text(
-                text = "Estado: $estado",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        // --- SECCIÓN MULTIMEDIA (Igual que antes) ---
 
         if (nota.photoUris.isNotEmpty()) {
             Text("Fotos", style = MaterialTheme.typography.titleMedium)
@@ -293,7 +337,5 @@ private fun LoadedDetailContent(nota: Nota, modifier: Modifier = Modifier) {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-
     }
 }

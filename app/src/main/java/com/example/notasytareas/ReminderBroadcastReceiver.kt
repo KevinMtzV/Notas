@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.notasytareas.MainActivity
 
@@ -14,16 +15,17 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val noteId = intent.getIntExtra("note_id", -1)
+        val reminderId = intent.getIntExtra("reminder_id", 0)
         val title = intent.getStringExtra("note_title") ?: "Tarea"
         val content = intent.getStringExtra("note_content") ?: "Es hora de tu tarea."
         val isTask = intent.getBooleanExtra("is_task", false)
 
         if (noteId != -1) {
-            showNotification(context, noteId, title, content,isTask)
+            showNotification(context, noteId,reminderId, title, content,isTask)
         }
     }
 
-    private fun showNotification(context: Context, noteId: Int, title: String, content: String, isTask: Boolean) {
+    private fun showNotification(context: Context, noteId: Int,reminderId: Int, title: String, content: String, isTask: Boolean) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val channelId = "reminder_channel"
@@ -37,7 +39,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             putExtra("note_id", noteId) // Para navegar a la nota si se abre la app desde la notificación
             putExtra("is_task", isTask)
         }
-        val pendingIntent = PendingIntent.getActivity(context, noteId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent = PendingIntent.getActivity(context, reminderId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -48,7 +50,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
-
-        notificationManager.notify(noteId, notification)
+        Log.d("AlarmTest", "Pasa a notificar")
+        notificationManager.notify(reminderId, notification)
     }
 }

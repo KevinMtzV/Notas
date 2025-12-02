@@ -27,18 +27,21 @@ class BootReceiver : BroadcastReceiver() {
             // Corrutina para trabajar en segundo plano
             CoroutineScope(Dispatchers.IO).launch {
                 try {
+                    val tiempoActual = System.currentTimeMillis()
                     // Usamos la función SUSPEND que devuelve una List<Nota> directa
                     // NO usamos el Flow
-                    val notas = repository.obtenerNotasActivasParaRecordatorio()
+                    val recordatoriosFuturos = repository.obtenerRecordatoriosFuturos(tiempoActual)
 
-                    val tiempoActual = System.currentTimeMillis()
                     var contador = 0
 
                     // Recorrer y reprogramar
-                    notas.forEach { nota ->
-                        // Validamos que tenga recordatorio y sea en el futuro
-                        if (nota.reminder != null && nota.reminder > tiempoActual) {
-                            AlarmScheduler.scheduleAlarm(context, nota)
+                    recordatoriosFuturos.forEach { recordatorio ->
+                        // 3. Buscamos la nota asociada a este recordatorio
+                        val nota = repository.obtenerNotaDirecta(recordatorio.notaId)
+
+                        if (nota != null) {
+                            // 4. AHORA SÍ pasamos los 3 parámetros requeridos: context, nota, recordatorio
+                            AlarmScheduler.scheduleAlarm(context, nota, recordatorio)
                             contador++
                         }
                     }

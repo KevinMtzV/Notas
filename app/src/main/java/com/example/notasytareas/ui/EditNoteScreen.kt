@@ -12,6 +12,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -76,6 +77,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.notasytareas.NotasApplication
 import com.example.notasytareas.R
+import com.example.notasytareas.data.models.Recordatorio
 import com.example.notasytareas.ui.viewmodel.EditNoteUiState
 import com.example.notasytareas.ui.viewmodel.EditNoteViewModel
 import com.example.notasytareas.ui.viewmodel.EditNoteViewModelFactory
@@ -115,7 +117,6 @@ fun EditNoteScreen(
         }
     }
 
-
     val audioPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -123,7 +124,6 @@ fun EditNoteScreen(
             isRecording = true
         }
     }
-
 
     LaunchedEffect(isRecording) {
         if (isRecording) {
@@ -179,7 +179,6 @@ fun EditNoteScreen(
 
     val uiState by viewModel.uiState.collectAsState()
 
-
     val imagePickerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
         uris.forEach { uri ->
             val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
@@ -226,8 +225,6 @@ fun EditNoteScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    // AQUÍ ESTÁ LA CLAVE: Pasamos onSave dentro de las llaves
-                    // para que se ejecute SOLO cuando el ViewModel termine de guardar
                     viewModel.guardarNota(isTask) {
                         onSave()
                     }
@@ -307,7 +304,9 @@ fun EditNoteScreen(
                     mediaPlayer = newPlayer
                     currentlyPlaying = uri
                 }
-            }
+            },
+            // --- CAMBIO: Pasamos la función para borrar recordatorios individuales ---
+            onRemoveReminder = viewModel::removeReminder
         )
     }
 }
@@ -336,7 +335,9 @@ fun EditNoteContent(
     onShowReminderTimePicker: (Boolean) -> Unit,
     onOpenCameraClick: () -> Unit,
     currentlyPlayingAudioUri: String?,
-    onPlayAudioClick: (String) -> Unit
+    onPlayAudioClick: (String) -> Unit,
+    // --- CAMBIO: Nuevo parámetro para borrar recordatorios ---
+    onRemoveReminder: (Recordatorio) -> Unit
 ) {
     val context = LocalContext.current
     var showPermissionDialog by remember { mutableStateOf(false) }
@@ -442,6 +443,7 @@ fun EditNoteContent(
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        // ... (Campos de texto y multimedia igual que antes) ...
         OutlinedTextField(
             value = uiState.title,
             onValueChange = onTitleChange,
@@ -585,7 +587,6 @@ fun EditNoteContent(
                     Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.set_deadline_content_description))
                 }
                 uiState.fechaLimite?.let {
-                    // MEJORA: Formato explícito para la fecha límite
                     val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                     Text(formatter.format(Date(it)))
 
@@ -595,36 +596,66 @@ fun EditNoteContent(
                 }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.reminder_label))
-                IconButton(onClick = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-                            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                            if (alarmManager.canScheduleExactAlarms()) {
-                                onShowReminderDatePicker(true)
+            // --- CAMBIO: SECCIÓN DE RECORDATORIOS REDISEÑADA PARA LISTAS ---
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.reminder_label))
+                    IconButton(onClick = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                                if (alarmManager.canScheduleExactAlarms()) {
+                                    onShowReminderDatePicker(true)
+                                } else {
+                                    showPermissionDialog = true
+                                }
                             } else {
-                                showPermissionDialog = true
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                             }
                         } else {
-                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            onShowReminderDatePicker(true)
                         }
-                    } else {
-                        onShowReminderDatePicker(true)
+                    }) {
+                        Icon(Icons.Default.AddAlert, contentDescription = stringResource(R.string.set_reminder_content_description))
                     }
-                }) {
-                    Icon(Icons.Default.AddAlert, contentDescription = stringResource(R.string.set_reminder_content_description))
                 }
-                uiState.reminder?.let {
-                    // MEJORA: Formato explícito para el recordatorio con hora
-                    val formatter = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                    Text(formatter.format(Date(it)))
 
-                    IconButton(onClick = { onReminderDateSelected(null) }) {
-                        Icon(Icons.Default.Cancel, contentDescription = "Eliminar recordatorio")
+                // Lista de Recordatorios
+                if (uiState.reminders.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        uiState.reminders.forEach { recordatorio ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(MaterialTheme.shapes.small)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    .padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                val formatter = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                                Text(
+                                    text = formatter.format(Date(recordatorio.time)),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+
+                                IconButton(onClick = { onRemoveReminder(recordatorio) }) {
+                                    Icon(
+                                        Icons.Default.Cancel,
+                                        contentDescription = "Eliminar este recordatorio",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
+            // --- FIN CAMBIO ---
         }
     }
 }
