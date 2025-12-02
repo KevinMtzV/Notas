@@ -1,6 +1,7 @@
 package com.example.notasytareas.ui
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Environment
@@ -68,6 +69,10 @@ import kotlinx.coroutines.future.await
 import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import android.provider.Settings
+import android.content.Intent
+import androidx.compose.material3.Button
+import androidx.core.app.ActivityCompat
 
 enum class CameraMode {
     PHOTO, VIDEO
@@ -76,35 +81,110 @@ enum class CameraMode {
 @Composable
 fun CameraScreen(onImageCaptured: (Uri) -> Unit, onVideoCaptured: (Uri) -> Unit) {
     val context = LocalContext.current
-    var hasPermission by remember { mutableStateOf(false) }
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = { permissions ->
-            hasPermission = permissions.values.all { it }
-        }
-    )
+    val activity = context.findActivity() // Asegúrate de tener esta función auxiliar en el archivo
 
-    LaunchedEffect(key1 = true) {
-        val permissionsToRequest = mutableListOf(
+    var hasPermission by remember { mutableStateOf(false) }
+
+    // Estado para controlar qué hace el botón: ¿Reintentar o Ajustes?
+    var showOpenSettingsButton by remember { mutableStateOf(false) }
+
+    // Estado para saber si debemos mostrar la UI de error (solo después de que el usuario interactúe)
+    var permissionDenied by remember { mutableStateOf(false) }
+
+    // Definimos los permisos fuera del LaunchedEffect para poder usarlos en el botón de reintentar
+    val permissionsToRequest = remember {
+        val list = mutableListOf(
             Manifest.permission.CAMERA,
             Manifest.permission.RECORD_AUDIO
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissionsToRequest.add(Manifest.permission.READ_MEDIA_IMAGES)
-            permissionsToRequest.add(Manifest.permission.READ_MEDIA_VIDEO)
+            list.add(Manifest.permission.READ_MEDIA_IMAGES)
+            list.add(Manifest.permission.READ_MEDIA_VIDEO)
         } else {
-            permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            list.add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
-        launcher.launch(permissionsToRequest.toTypedArray())
+        list.toTypedArray()
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissionsMap ->
+            val allGranted = permissionsMap.values.all { it }
+            hasPermission = allGranted
+
+            if (!allGranted) {
+                permissionDenied = true // Mostramos la UI de error
+
+                if (activity != null) {
+                    // Verificamos si podemos volver a pedir el permiso (Rationale)
+                    val shouldShowRationale = permissionsMap.keys.any { permission ->
+                        ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)
+                    }
+
+                    if (shouldShowRationale) {
+                        // El usuario dijo "No" (1ra vez). Botón = Reintentar
+                        showOpenSettingsButton = false
+                    } else {
+                        // El usuario dijo "No" (2da vez) o "No volver a preguntar". Botón = Ajustes
+                        showOpenSettingsButton = true
+                    }
+                }
+            }
+        }
+    )
+
+    // Pedimos permisos automáticamente al entrar
+    LaunchedEffect(key1 = true) {
+        launcher.launch(permissionsToRequest)
     }
 
     if (hasPermission) {
         CameraView(context, onImageCaptured, onVideoCaptured)
     } else {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Requesting permissions...")
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (permissionDenied) {
+                // Texto dinámico según el estado
+                Text(
+                    text = if (showOpenSettingsButton)
+                        "Has bloqueado el acceso a la cámara permanentemente. Debes habilitarlo en Ajustes."
+                    else
+                        "Se requiere acceso a la cámara y micrófono para tomar fotos y videos.",
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.size(16.dp))
+
+                Button(onClick = {
+                    if (showOpenSettingsButton) {
+                        // MODO: IR A AJUSTES
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", context.packageName, null)
+                        }
+                        context.startActivity(intent)
+                    } else {
+                        // MODO: REINTENTAR (Vuelve a salir el diálogo del sistema)
+                        launcher.launch(permissionsToRequest)
+                    }
+                }) {
+                    Text(if (showOpenSettingsButton) "Ir a Ajustes" else "Conceder Permisos")
+                }
+            } else {
+                // Mensaje temporal mientras carga el diálogo del sistema la primera vez
+                Text("Solicitando permisos...")
+            }
         }
     }
+}
+
+// Pega esto al final del archivo si no lo tienes visible
+fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 @Composable

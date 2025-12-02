@@ -34,8 +34,8 @@ import com.example.notasytareas.ui.viewmodel.EditNoteViewModelFactory
 @Composable
 fun AppNav(
     widthSizeClass: WindowWidthSizeClass,
-    startNoteId: Int = -1,    // <--- RECIBIMOS EL ID
-    startIsTask: Boolean = false // <--- RECIBIMOS EL TIPO
+    startNoteId: Int = -1,
+    startIsTask: Boolean = false
 ) {
 
     val isCompact = widthSizeClass == WindowWidthSizeClass.Compact
@@ -145,9 +145,7 @@ private fun PhoneNavigation(startNoteId: Int, startIsTask: Boolean) {
 @Composable
 private fun TabletNavigation(startNoteId: Int, startIsTask: Boolean) {
 
-    // 2. INICIALIZAR ESTADO DE TABLET
-    // Si venimos de notificación, inicializamos las variables con la nota seleccionada
-    // y en modo edición para que aparezca directamente.
+
 
     var selectedNoteId by rememberSaveable {
         mutableStateOf(if (startNoteId != -1) startNoteId else null)
